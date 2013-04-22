@@ -5200,7 +5200,18 @@ namespace std {
 }
 
 
+template<class T> 
+inline T diff(const ad::ADNumber<T> &var, unsigned int order = 1){
+    return var.Nth(order);
+}
+
+
+template<class T> 
+inline T diff(const ad::ADNumber<T> &var, const ad::ADNumber<T> &wrt, unsigned int order = 1){
+    return var.NthPartial(wrt,order);
+}
+
 typedef ad::ADNumber<double> dvar;
-typedef ad::ADNumber<double> fvar;
+typedef ad::ADNumber<float> fvar;
 
 #endif	/* ADNUMBER_HPP */
