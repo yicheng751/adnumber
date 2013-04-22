@@ -1,4 +1,3 @@
-
 #ifndef ADDNUMBER_HPP
 #define	ADDNUMBER_HPP
 
@@ -56,6 +55,7 @@
  *
  * File:   ADNumber.hpp
  * Author: Matthew R. Supernaw
+ * Email:  msupernaw@gmail.com
  *
  * Created on January 4, 2012, 7:08 PM
  */
