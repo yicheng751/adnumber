@@ -2689,12 +2689,12 @@ namespace ad {
             }
         }
 
-        //    /*!
-        //     * returns this value.
-        //     */
-        //    operator T() const {
-        //        return this->value_;
-        //    }
+        /*!
+         * returns this value.
+         */
+        operator T() const {
+            return this->value_;
+        }
 
         /*!
          * Returns this value.
