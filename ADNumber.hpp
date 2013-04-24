@@ -511,12 +511,12 @@ namespace ad {
          * 
          * @return Expression<T>
          */
-        Expression<T>* Differentiate() {
+         Expression<T>* Differentiate() {
 
 
             Expression<T>* ret = new Expression<T > ();
 
-
+            Expression<T>* temp;
             switch (op_) {
 
                 case CONSTANT:
@@ -651,8 +651,13 @@ namespace ad {
                 case SIN:
                     //f'(x) = cos(x)
 
-                    ret->op_ = COS;
-                    ret->left_ = this->left_->Clone();
+                    ret->op_ = MULTIPLY;
+
+                    ret->left_ = this->left_->Differentiate();
+
+                    ret->right_ = new Expression<T > ();
+                    ret->right_->op_ = COS;
+                    ret->right_->left_ = this->left_->Clone();
 
                     //ret->Simplify();
                     return ret;
@@ -660,12 +665,17 @@ namespace ad {
                 case COS:
                     //f'(x) = -sin(x)
 
+
                     ret->op_ = MULTIPLY;
 
 
                     ret->left_ = new Expression<T > ();
-                    ret->left_->op_ = CONSTANT;
-                    ret->left_->value_ = T(-1.0);
+                    ret->left_->op_ = MULTIPLY;
+                    ret->left_->left_ = new Expression<T>;
+                    ret->left_->left_->op_ = CONSTANT;
+                    ret->left_->left_->value_ = T(-1.0);
+                    ret->left_->right_ = this->left_->Differentiate();
+
 
                     ret->right_ = new Expression<T > ();
                     ret->right_->op_ = SIN;
@@ -677,20 +687,37 @@ namespace ad {
                     //f(x) = tan(x)
                     //f'(x) = (1/cos(x))(1/cos(x))
 
-                    ret->op_ = MULTIPLY;
+                    //easier to use the identity.
+                    temp = new Expression<T > ();
+                    temp->op_ = DIVIDE;
 
-                    ret->left_ = new Expression<T > ();
-                    ret->left_->op_ = DIVIDE;
+                    temp->left_ = new Expression<T>;
+                    temp->left_->op_ = SIN;
+                    temp->left_->left_ = this->left_->Clone();
 
-                    ret->left_->left_ = new Expression<T > ();
-                    ret->left_->left_->op_ = CONSTANT;
-                    ret->left_->left_->value_ = T(1.0);
+                    temp->right_ = new Expression<T>;
+                    temp->right_->op_ = COS;
+                    temp->right_->left_ = this->left_->Clone();
 
-                    ret->left_->right_ = new Expression<T > ();
-                    ret->left_->right_->op_ = COS;
-                    ret->left_->right_->left_ = this->left_->Clone();
+                    ret = temp->Differentiate();
 
-                    ret->right_ = ret->left_->Clone();
+
+
+                    //                    
+                    //                    ret->op_ = MULTIPLY;
+                    //
+                    //                    ret->left_ = new Expression<T > ();
+                    //                    ret->left_->op_ = DIVIDE;
+                    //
+                    //                    ret->left_->left_ = new Expression<T > ();
+                    //                    ret->left_->left_->op_ = CONSTANT;
+                    //                    ret->left_->left_->value_ = T(1.0);
+                    //
+                    //                    ret->left_->right_ = new Expression<T > ();
+                    //                    ret->left_->right_->op_ = COS;
+                    //                    ret->left_->right_->left_ = this->left_->Clone();
+                    //
+                    //                    ret->right_ = ret->left_->Clone();
 
                     //ret->Simplify();
                     return ret;
@@ -767,9 +794,11 @@ namespace ad {
 
                     ret->op_ = DIVIDE;
                     ret->left_ = new Expression<T > ();
-                    ret->left_->op_ = CONSTANT;
-                    ret->left_ ->value_ = T(1.0);
-
+                    ret->left_->op_ = MULTIPLY;
+                    ret->left_ ->left_ = new Expression<T > ();
+                    ret->left_->left_->op_ = CONSTANT;
+                    ret->left_->left_->value_ = T(1.0);
+                    ret->left_->right_ = this->left_->Differentiate();
 
                     ret->right_ = new Expression<T > ();
                     ret->right_->op_ = PLUS;
@@ -791,7 +820,10 @@ namespace ad {
                     //f'(x) y/(x^2+y^2)
 
                     ret->op_ = DIVIDE;
-                    ret->left_ = this->right_->Clone(); //y
+                    ret->left_ = new Expression<T > ();
+                    ret->left_->op_ = MULTIPLY;
+                    ret->left_ ->left_ = this->right_->Clone();
+                    ret->left_->right_ = this->left_->Differentiate();
 
 
                     ret->right_ = new Expression<T > ();
@@ -908,23 +940,37 @@ namespace ad {
                     //f(x) = e^x
                     //f'(x) =e^x
 
-                    ret->op_ = EXP;
-                    ret->left_ = this->left_->Clone();
+                    ret->op_ = MULTIPLY;
+                    ret->left_ = this->left_->Differentiate();
+
+                    ret->right_ = new Expression<T > ();
+                    ret->right_->op_ = EXP;
+                    ret->right_->left_ = this->left_->Clone();
 
                     //ret->Simplify();
                     return ret;
                 case SINH:
                     //f(x) = sinh(x)
                     //f'(x) = cosh(x)
+                    ret->op_ = MULTIPLY;
 
-                    ret->op_ = COSH;
-                    ret->left_ = this->left_->Clone();
+                    ret->left_ = this->left_->Differentiate();
+
+                    ret->right_ = new Expression<T > ();
+                    ret->right_->op_ = COSH;
+                    ret->right_->left_ = this->left_->Clone();
 
                     //ret->Simplify();
                     return ret;
                 case COSH:
-                    ret->op_ = SINH;
-                    ret->left_ = this->left_->Clone();
+                       ret->op_ = MULTIPLY;
+
+                    ret->left_ = this->left_->Differentiate();
+
+                    ret->right_ = new Expression<T > ();
+                    ret->right_->op_ = SINH;
+                    ret->right_->left_ = this->left_->Clone();
+
 
                     //ret->Simplify();
                     return ret;
@@ -961,7 +1007,7 @@ namespace ad {
 
                     return ret;
                 case ABS:
-
+#warning needs review
                     ret->op_ = DIVIDE;
                     ret->left_ = this->left_->Clone();
 
@@ -987,27 +1033,7 @@ namespace ad {
             }
             return NULL;
         }
-
-        bool HasID(const uint32_t &id) {
-            //     std::cout << this->id_ << " ?= " << id << "\n";
-            if (this->id_ == id) {
-                return true;
-            }
-            if (this->left_) {
-                if (this->left_->HasID(id)) {
-                    return true;
-                }
-            }
-
-            if (this->right_) {
-                if (this->right_->HasID(id)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
+        
         /*!
          * Builds a expression tree representing the derivative with respect to 
          * some ADNumber via its id.(reverse mode) 
