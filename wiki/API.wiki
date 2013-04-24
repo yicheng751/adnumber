@@ -3,7 +3,6 @@
 ==Public Member Functions ==
 
 {{{
-Public Member Functions
 
  ADNumber ()
  ADNumber (T value, T derivative=T(1.0))
