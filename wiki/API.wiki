@@ -1,6 +1,6 @@
-#ADNumber
+=ADNumber=
 
-= Public Member Functions =
+==Public Member Functions ==
 
 {{{
 Public Member Functions
@@ -70,4 +70,53 @@ const std::string 	NthPartialToString (const ADNumber< T > &wrt, const unsigned 
 const std::string 	GetName () const
 void 	SetName (const std::string &name)
 const uint32_t 	GetID () const
+}}}
+
+
+==Math Functions==
+{{{
+
+
+template<class T >
+ad::ADNumber< T > 	atan (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	atan2 (const ad::ADNumber< T > &lhs, const ad::ADNumber< T > &rhs)
+template<class T >
+ad::ADNumber< T > 	atan2 (T lhs, const ad::ADNumber< T > &rhs)
+template<class T >
+ad::ADNumber< T > 	atan2 (const ad::ADNumber< T > &lhs, T rhs)
+template<class T >
+ad::ADNumber< T > 	cos (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	exp (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	log (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	log10 (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	pow (const ad::ADNumber< T > &lhs, const ad::ADNumber< T > &rhs)
+template<class T >
+ad::ADNumber< T > 	pow (T lhs, const ad::ADNumber< T > &rhs)
+template<class T >
+ad::ADNumber< T > 	pow (const ad::ADNumber< T > &lhs, T rhs)
+template<class T >
+ad::ADNumber< T > 	sin (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	sqrt (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	tan (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	acos (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	asin (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	sinh (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	cosh (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	tanh (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	fabs (const ad::ADNumber< T > &val)
+template<class T >
+ad::ADNumber< T > 	floor (const ad::ADNumber< T > &val)
 }}}
