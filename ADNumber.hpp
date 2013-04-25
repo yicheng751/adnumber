@@ -2609,7 +2609,7 @@ namespace ad {
          * @param value
          * @param derivative
          */
-        ADNumber(std::string name, T value, T derivative = T(1)) :
+        ADNumber(std::string name, T value, T derivative = T(1.0)) :
         value_(value),
         fderivative_(derivative),
         variableName_(name),
