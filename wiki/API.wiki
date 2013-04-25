@@ -6,7 +6,7 @@
 
  ADNumber ()
  ADNumber (T value, T derivative=T(1.0))
- ADNumber (std::string name, T value, T derivative=T(1))
+ ADNumber (std::string name, T value, T derivative=T(1.0))
  ADNumber (const ADNumber &orig)
 virtual ~ADNumber ()
 operator ADNumber< T > () const
