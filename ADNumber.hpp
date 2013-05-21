@@ -79,6 +79,8 @@
 #include <vector>
 #include <map>
 #include <cmath>
+#include <limits>
+#include <stdint.h>
 
 #ifdef USE_MEMORY_POOL
 #include "memory_pool.hpp"
