@@ -60,7 +60,7 @@
  * Created on January 4, 2012, 7:08 PM
  */
 
-
+#define ADNUMBER_VERSION 0.9
 
 /*!
  *Modification history
