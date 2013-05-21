@@ -2808,13 +2808,13 @@ Lock l(this->mutex_m);
         }
     
         
-        /*!
-         * In member assignment operator to set this 
-         * equal to another ADNumber val.
-         */
-        ADNumber<T>  operator =(const ADNumber<T> &val) const{
+//        /*!
+//         * In member assignment operator to set this 
+//         * equal to another ADNumber val.
+//         */
+//        ADNumber<T>  operator =(const ADNumber<T> &val) const{
 //             Lock l(this->mutex_m);
-//              ADNumber<T>
+//              ADNumber<T> val;
 //            if (val.expression_ != NULL) {
 //                delete this->expression_;
 //            }
@@ -2824,9 +2824,9 @@ Lock l(this->mutex_m);
 //            this->fderivative_ = val.Forward();
 //            this->id_ = val.id_;
 //            this->variableName_ = val.variableName_;
-
-            return ADNumber<T>(val);
-        }
+//
+//            return val;
+//        }
 
 
         /*!
