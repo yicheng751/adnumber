@@ -82,6 +82,9 @@
 #include <limits>
 #include <stdint.h>
 
+
+#define  trace_threads 
+
 #ifdef USE_MEMORY_POOL
 #include "memory_pool.hpp"
 #endif
@@ -1134,7 +1137,7 @@ namespace ad {
                     //f'(x) = 0
 
                     ret->op_ = CONSTANT;
-                    ret->value_ = this->value_;
+                    ret->value_ = T(0);//this->value_;
 
                     //ret->Simplify();
                     return ret;
