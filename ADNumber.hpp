@@ -70,9 +70,9 @@
  *
  */
 
-//#define USE_MEMORY_POOL
+//#define USE_MEMORY_POOL need to create a thread safe memory pool like GCPool
 
-//#include <complex>
+#include <complex>
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -81,9 +81,6 @@
 #include <cmath>
 #include <limits>
 #include <stdint.h>
-
-
-#define  trace_threads 
 
 #ifdef USE_MEMORY_POOL
 #include "memory_pool.hpp"
@@ -125,7 +122,9 @@ namespace ad {
          * Destructor.
          */
         ~Mutex() {
+#ifndef WINDOWS_OS
             pthread_mutex_destroy(&t_mutex);
+#endif
         }
 
         /**
@@ -348,7 +347,6 @@ namespace ad {
         }
 
         void operator delete (void* ptr)throw () {
-
             MemoryPool < sizeof (Expression)>::instance().deallocate((void*) ptr);
         }
 #endif
@@ -1137,7 +1135,7 @@ namespace ad {
                     //f'(x) = 0
 
                     ret->op_ = CONSTANT;
-                    ret->value_ = T(0);//this->value_;
+                    ret->value_ = T(0); //this->value_;
 
                     //ret->Simplify();
                     return ret;
@@ -2714,7 +2712,7 @@ namespace ad {
         fderivative_(T(1)),
         variableName_(std::string("na")),
         id_(orig.id_) {
-Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
             this->variableName_ = orig.variableName_;
             this->value_ = orig.value_;
             this->fderivative_ = orig.fderivative_;
@@ -2769,7 +2767,7 @@ Lock l(this->mutex_m);
          * Destructor.
          */
         virtual ~ADNumber() {
-             Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
 
             if (this->expression_ != NULL) {
                 delete this->expression_;
@@ -2787,7 +2785,7 @@ Lock l(this->mutex_m);
          * Returns this value.
          */
         operator ADNumber<T>() const {
-             Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
             return this;
         }
 
@@ -2796,7 +2794,7 @@ Lock l(this->mutex_m);
          * equal to another ADNumber val.
          */
         ADNumber<T> & operator =(const ADNumber<T> &val) {
-             Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
             if (val.expression_ != NULL) {
                 delete this->expression_;
             }
@@ -2809,35 +2807,34 @@ Lock l(this->mutex_m);
 
             return *this;
         }
-    
-        
-//        /*!
-//         * In member assignment operator to set this 
-//         * equal to another ADNumber val.
-//         */
-//        ADNumber<T>  operator =(const ADNumber<T> &val) const{
-//             Lock l(this->mutex_m);
-//              ADNumber<T> val;
-//            if (val.expression_ != NULL) {
-//                delete this->expression_;
-//            }
-//
-//            this->expression_ = val.expression_->Clone();
-//            this->value_ = val.GetValue();
-//            this->fderivative_ = val.Forward();
-//            this->id_ = val.id_;
-//            this->variableName_ = val.variableName_;
-//
-//            return val;
-//        }
 
+
+        //        /*!
+        //         * In member assignment operator to set this 
+        //         * equal to another ADNumber val.
+        //         */
+        //        ADNumber<T>  operator =(const ADNumber<T> &val) const{
+        //             Lock l(this->mutex_m);
+        //              ADNumber<T> val;
+        //            if (val.expression_ != NULL) {
+        //                delete this->expression_;
+        //            }
+        //
+        //            this->expression_ = val.expression_->Clone();
+        //            this->value_ = val.GetValue();
+        //            this->fderivative_ = val.Forward();
+        //            this->id_ = val.id_;
+        //            this->variableName_ = val.variableName_;
+        //
+        //            return val;
+        //        }
 
         /*!
          * In member assignment operator to set this value 
          * equal to val with derivative set to 1.
          */
-        ADNumber<T> & operator =(const T & val)  {
-             Lock l(this->mutex_m);
+        ADNumber<T> & operator =(const T & val) {
+            Lock l(this->mutex_m);
             this->value_ = val;
             this->fderivative_ = T(1.0);
             this->id_ = uint32_t(IDGenerator::instance()->next());
@@ -2856,7 +2853,7 @@ Lock l(this->mutex_m);
          * this derivative + rhs derivitive.
          */
         ADNumber<T> operator +(const ADNumber<T>& rhs) const {
-             Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
             ADNumber<T > ret(T(this->value_ + rhs.GetValue()),
                     this->fderivative_ + rhs.Forward());
 
@@ -2873,7 +2870,7 @@ Lock l(this->mutex_m);
          * this derivative + 0.
          */
         ADNumber<T> operator +(const T & rhs) const {
-             Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
             ADNumber<T > ret(T(this->value_ + rhs),
                     T(this->fderivative_));
 
@@ -2895,7 +2892,7 @@ Lock l(this->mutex_m);
          *
          */
         ADNumber<T> operator -(const ADNumber<T>& rhs) const {
-             Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
             ADNumber<T > ret(T(this->value_ - rhs.GetValue()),
                     T(this->fderivative_ - rhs.Forward()));
 
@@ -2912,7 +2909,7 @@ Lock l(this->mutex_m);
          * Returns ADNumber<T>(this value - rhs value, this derivative - 0).
          */
         ADNumber<T> operator -(const T & rhs) const {
-             Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
             ADNumber<T > ret(T(this->value_ - rhs),
                     T(this->fderivative_));
 
@@ -2933,7 +2930,7 @@ Lock l(this->mutex_m);
          * this value_ * rhs derivative  + rhs value * this derivative).
          */
         ADNumber<T> operator *(const ADNumber<T>& rhs) const {
-             Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
             ADNumber<T > ret(T(this->value_ * rhs.GetValue()),
                     T(this->value_ * rhs.Forward() +
                     rhs.GetValue() * this->fderivative_));
@@ -2951,9 +2948,9 @@ Lock l(this->mutex_m);
          * this value_ * 0  + rhs value * this derivative).
          */
         ADNumber<T> operator *(const T & rhs) const {
-             Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
             ADNumber<T > ret(T(this->value_ * rhs),
-                    T(this->value_ * 0 + rhs * this->fderivative_));
+                    T(this->value_ * T(0) + rhs * this->fderivative_));
 
             ret.expression_->SetOp(MULTIPLY);
             ret.expression_->SetLeft(this->expression_->Clone());
@@ -3240,7 +3237,7 @@ Lock l(this->mutex_m);
          * Returns the computed value.
          */
         const T GetValue() const {
-        //    Lock l(this->mutex_m);
+            //    Lock l(this->mutex_m);
             return this->value_;
         }
 
@@ -3251,7 +3248,7 @@ Lock l(this->mutex_m);
          * Source:http://en.wikipedia.org/wiki/Automatic_differentiation#Automatic_differentiation_using_dual_numbers
          */
         const T Forward() const {
-          //  Lock l(this->mutex_m);
+            //  Lock l(this->mutex_m);
             return this->fderivative_;
         }
 
@@ -4389,7 +4386,7 @@ Lock l(this->mutex_m);
          * @return 
          */
         const std::string GetName() const {
-           Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
             return this->variableName_;
         }
 
@@ -4402,7 +4399,7 @@ Lock l(this->mutex_m);
          * Return the unique identifier for this ADNumber.
          */
         const uint32_t GetID() const {
-           Lock l(this->mutex_m);
+            Lock l(this->mutex_m);
             return this->id_;
         }
 
@@ -4861,7 +4858,7 @@ Lock l(this->mutex_m);
      */
     template<class T> const ADNumber<T> operator*(T lhs, const ADNumber<T>& rhs) {
         ADNumber<T > ret(T(lhs * rhs.GetValue()),
-                T(lhs * rhs.Forward() + rhs.GetValue() * 0));
+                T(lhs * rhs.Forward() + rhs.GetValue() * T(0)));
 
         Expression<T> *exp = new Expression<T > ();
         exp->SetValue(lhs);
