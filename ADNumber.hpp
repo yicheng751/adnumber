@@ -1041,18 +1041,19 @@ namespace ad {
                     //f(x) = tanh(x)
                     //f'(x) =1- tanh(x)*tanh(x)
 
-                    ret->op_ = MINUS;
+            ret->op_m = MULTIPLY;
 
-                    ret->left_ = new Expression<T > ();
-                    ret->left_->op_ = CONSTANT;
-                    ret->left_->value_ = T(1.0);
+                    ret->left_m = new Expression<T > ();
+                    ret->left_m->op_m = DIVIDE;
+                    ret->left_m->left_m = new Expression<T > ();
+                    ret->left_m->left_m->op_m = CONSTANT;
+                    ret->left_m->left_m->value_m = T(1.0);
 
+                    ret->left_m->right_m = new Expression<T > ();
+                    ret->left_m->right_m->op_m = COSH;
+                    ret->left_m->right_m->left_m= this->left_m->Clone();
 
-                    ret->right_ = new Expression<T > ();
-                    ret->right_->op_ = MULTIPLY;
-
-                    ret->right_->left_ = this->Clone();
-                    ret->right_->right_ = this->Clone();
+                     ret->right_m = ret->left_m->Clone();
 
                     //ret->Simplify();
                     return ret;
@@ -1788,27 +1789,43 @@ namespace ad {
 
                     if (this->left_->HasID(id)) {
 
-                        ret->op_ = MULTIPLY;
+                       
+ 
+                    ret->op_m = MULTIPLY;
 
-                        ret->left_ = this->left_->Differentiate(id);
+                    ret->left_m = new Expression<T > ();
+                    ret->left_m->op_m = DIVIDE;
+                    ret->left_m->left_m = new Expression<T > ();
+                    ret->left_m->left_m->op_m = CONSTANT;
+                    ret->left_m->left_m->value_m = T(1.0);
 
-                        ret->right_ = new Expression<T > ();
-                        ret->right_->op_ = MULTIPLY;
-                        ret->right_->left_ = new Expression<T > ();
+                    ret->left_m->right_m = new Expression<T > ();
+                    ret->left_m->right_m->op_m = COSH;
+                    ret->left_m->right_m->left_m= this->left_m->Clone();
 
+                     ret->right_m = ret->left_m->Clone();
 
-                        ret->right_->left_->op_ = DIVIDE;
-                        ret->right_->left_->left_ = new Expression<T > ();
-                        ret->right_->left_->left_->op_ = CONSTANT;
-                        ret->right_->left_->left_->value_ = T(1.0);
-
-
-                        ret->right_->left_->right_ = new Expression<T > ();
-                        ret->right_->left_->right_->op_ = COSH;
-                        ret->right_->left_->right_->left_ = this->left_->Clone();
-
-
-                        ret->right_->right_ = ret->right_->left_->Clone();
+//                        ret->op_m = MULTIPLY;
+//
+//                        ret->left_m = this->left_m->Differentiate(id);
+//
+//                        ret->right_m = new Expression<T > ();
+//                        ret->right_m->op_m = MULTIPLY;
+//                        ret->right_m->left_m = new Expression<T > ();
+//
+//
+//                        ret->right_m->left_m->op_m = DIVIDE;
+//                        ret->right_m->left_m->left_m = new Expression<T > ();
+//                        ret->right_m->left_m->left_m->op_m = CONSTANT;
+//                        ret->right_m->left_m->left_m->value_m = T(1.0);
+//
+//
+//                        ret->right_m->left_m->right_m = new Expression<T > ();
+//                        ret->right_m->left_m->right_m->op_m = COSH;
+//                        ret->right_m->left_m->right_m->left_m = this->left_m->Clone();
+//
+//
+//                        ret->right_m->right_m = ret->right_m->left_m->Clone();
                         //
                         //                        ret->left_->op_ = MULTIPLY;
                         //                        ret->left_->right_ = new Expression<T > ();
@@ -1847,6 +1864,7 @@ namespace ad {
                         //                ret->right_->right_->op_ = COSH;
                         //                ret->right_->right_->left_ = this->left_->Clone();
                         //
+
 
                         //ret->Simplify();
                         return ret;
