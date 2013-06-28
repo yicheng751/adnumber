@@ -5334,7 +5334,7 @@ namespace std {
      */
     template<class T> ad::ADNumber<T> tanh(const ad::ADNumber<T> &val) {
         T temp = cosh(val.GetValue());
-        ad::ADNumber<T> ret(tanh(val.GetValue()));
+        ad::ADNumber<T> ret(std::tanh(val.GetValue()), (T(1) / temp)*(T(1) / temp));
 
         ret.expression_->SetOp(ad::TANH);
         ret.expression_->SetLeft(val.expression_->Clone());
