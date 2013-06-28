@@ -939,29 +939,31 @@ namespace ad {
                     //f(x) =  x^y
                     //f'(x) = yx^y-1
 
-                    ret->op_ = MULTIPLY;
+          
+                    ret->op_m = MULTIPLY;
 
-                    ret->left_ = new Expression<T > ();
-                    ret->left_->op_ = MULTIPLY;
-                    ret->left_->left_ = this->left_->Differentiate();
-                    ret->left_->right_ = this->right_->Clone();
+//                    ret->left_m = new Expression<T > ();
+//                    ret->left_m->op_m = MULTIPLY;
+//                    ret->left_m->left_m = this->left_m->Differentiate();
+//                    ret->left_m->right_m = this->right_m->Clone();
 
+                    ret->left_m = right_m->Clone();
 
-
-                    ret->right_ = new Expression<T > ();
-                    ret->right_->op_ = POW;
-
-
-                    ret->right_->left_ = this->left_->Clone();
+                    ret->right_m = new Expression<T > ();
+                    ret->right_m->op_m = POW;
 
 
-                    ret->right_->right_ = new Expression<T > ();
-                    ret->right_->right_->op_ = MINUS;
-                    ret->right_->right_->left_ = this->right_->Clone();
+                    ret->right_m->left_m = this->left_m->Clone();
 
-                    ret->right_->right_->right_ = new Expression<T > ();
-                    ret->right_->right_->right_->op_ = CONSTANT;
-                    ret->right_->right_->right_->value_ = T(1.0);
+
+                    ret->right_m->right_m = new Expression<T > ();
+                    ret->right_m->right_m->op_m = MINUS;
+                    ret->right_m->right_m->left_m = this->right_m->Clone();
+
+                    ret->right_m->right_m->right_m = new Expression<T > ();
+                    ret->right_m->right_m->right_m->op_m = CONSTANT;
+                    ret->right_m->right_m->right_m->value_m = T(1.0);
+
 
                     //ret->Simplify();
 
@@ -1606,29 +1608,31 @@ namespace ad {
                         //f(x) =  x^y
                         //f'(x) = yx^y-1
 
-                        ret->op_ = MULTIPLY;
+                      
+                    ret->op_m = MULTIPLY;
 
-                        ret->left_ = new Expression<T > ();
-                        ret->left_->op_ = MULTIPLY;
-                        ret->left_->left_ = this->left_->Differentiate(id);
-                        ret->left_->right_ = this->right_->Clone();
+//                    ret->left_m = new Expression<T > ();
+//                    ret->left_m->op_m = MULTIPLY;
+//                    ret->left_m->left_m = this->left_m->Differentiate();
+//                    ret->left_m->right_m = this->right_m->Clone();
 
+                    ret->left_m = right_m->Clone();
 
-
-                        ret->right_ = new Expression<T > ();
-                        ret->right_->op_ = POW;
-
-
-                        ret->right_->left_ = this->left_->Clone();
+                    ret->right_m = new Expression<T > ();
+                    ret->right_m->op_m = POW;
 
 
-                        ret->right_->right_ = new Expression<T > ();
-                        ret->right_->right_->op_ = MINUS;
-                        ret->right_->right_->left_ = this->right_->Clone();
+                    ret->right_m->left_m = this->left_m->Clone();
 
-                        ret->right_->right_->right_ = new Expression<T > ();
-                        ret->right_->right_->right_->op_ = CONSTANT;
-                        ret->right_->right_->right_->value_ = T(1.0);
+
+                    ret->right_m->right_m = new Expression<T > ();
+                    ret->right_m->right_m->op_m = MINUS;
+                    ret->right_m->right_m->left_m = this->right_m->Clone();
+
+                    ret->right_m->right_m->right_m = new Expression<T > ();
+                    ret->right_m->right_m->right_m->op_m = CONSTANT;
+                    ret->right_m->right_m->right_m->value_m = T(1.0);
+
 
                         //ret->Simplify();
 
