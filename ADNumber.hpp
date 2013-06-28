@@ -1,4 +1,3 @@
-
 #ifndef ADDNUMBER_HPP
 #define	ADDNUMBER_HPP
 
@@ -5205,7 +5204,7 @@ namespace std {
         return ret;
     }
 
-    /*!
+     /*!
      * Compute square root val.
      * 
      * @param val
@@ -5214,15 +5213,15 @@ namespace std {
     template<class T> ad::ADNumber<T> sqrt(const ad::ADNumber<T> &val) {
         T temp = sqrt(val.GetValue());
         ad::ADNumber<T> ret(temp,
-                T(0.5) / temp);
-        ad::Expression<T>* right = new ad::Expression<T > ();
-        right->SetOp(ad::CONSTANT);
-        right->SetValue(T(0.5));
-
-        //just use pow!!!
-        ret.expression_->SetOp(ad::POW);
-        ret.expression_->SetLeft(val.expression_->Clone());
-        ret.expression_->SetRight(right);
+                T(1.0) / (T(2.0)*temp));
+//        ad::Expression<T>* right = new ad::Expression<T > ();
+//        right->SetOp(ad::CONSTANT);
+//        right->SetValue(T(0.5));
+//
+//        //just use pow!!!
+        ret.expression_m->SetOp(ad::SQRT);
+        ret.expression_m->SetLeft(val.expression_m->Clone());
+       // ret.expression_m->SetRight(right);
         return ret;
     }
 
