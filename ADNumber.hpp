@@ -84,7 +84,7 @@
 #include <assert.h>
 
 
-//#define USE_CLFMALLOC//USE_MEMORY_POOL //USE_THREAD_ALLOCATOR
+#define USE_CLFMALLOC//USE_MEMORY_POOL //USE_THREAD_ALLOCATOR
 
 #ifdef USE_THREAD_ALLOCATOR
 
@@ -1996,7 +1996,6 @@ namespace ad {
 
                         return ret;
                     } else {
-                        ret->value_m = T(0.0);
                         return T(0.0);
                     }
                 case ACOS:
@@ -2054,7 +2053,6 @@ namespace ad {
 
                         return ret;
                     } else {
-                        ret->value_m = T(0.0);
                         return T(0.0);
                     }
                 case POW:
@@ -2079,7 +2077,7 @@ namespace ad {
                    
                         return ret;
                     } else {
-                                               ret->value_m = T(0.0);
+                                              
                         return T(0.0);
                     }
                 case LOG10:
@@ -5052,7 +5050,7 @@ namespace ad {
         //unique id
         uint32_t id_m;
 
-        mutable Mutex mutex_m;
+ 
 
 
     public:
