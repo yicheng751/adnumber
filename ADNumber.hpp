@@ -1,4 +1,3 @@
-
 #ifndef ADDNUMBER_HPP
 #define	ADDNUMBER_HPP
 
