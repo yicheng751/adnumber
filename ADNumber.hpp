@@ -1,15 +1,12 @@
 
-#ifndef ADDNUMBER_HPP
-#define	ADDNUMBER_HPP
-
 /*!
- *  Software to compute derivatives. Support for forward, reverse, partial, 
- *  nth, and nth partial derivatives.
+ *  Software to compute derivatives. Support for nth partial and
+ *  mixed derivatives.
  */
 
 /*!
  *   This library is dual-licensed: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version <N> as 
+ *   it under the terms of the GNU General Public License version 3 as 
  *   published by the Free Software Foundation. For the terms of this 
  *   license, see licenses/gpl_v<N>.txt or <http://www.gnu.org/licenses/>.
  *
@@ -52,7 +49,7 @@
  * 
  */
 
-/*
+/*!
  *
  * File:   ADNumber.hpp
  * Author: Matthew R. Supernaw
@@ -61,134 +58,86 @@
  */
 
 
+#ifndef AD_ADNUMBER_HPP
+#define	AD_ADNUMBER_HPP
 
-/*
- *Modification history
- * 
- * 2/28/2013 - fixed bug in operator -(T lhs, ADNumber rhs) M.S.
- * 
- *
- */
-
-
-/**
- * @defgroup AD_DESIGN Designing ADNumber
- * 
- * 
- * 
- * @section Theory What is Automatic Differentiation? 
- * 
- * The term Automatic Differentiation(AD) refers to the ability to evaluate a functions <br>
- * derivative using a computer program. Automatic Differentiation leverages the fact <br>
- * that every computer program is made of elementary mathematical operations. AD  <br>
- * provides a level of precision that cannot be achieved using traditional numerical <br>
- * methods. <br> 
- * <br>
- * <br>
- * AD is useful in many areas of science, such as:
- * <ul>
- * <li>Computational Finance</li>
- * <li>Biostatistics</li>
- * <li>Mechanical Engineering</li>
- * <li>Chemical Engineering</li>
- * <li>Nonlinear Optimization</li>
- * </ul>
- * <br>
- * In general, there are two ways to accomplish automatic differentiation <br>
- * in computer programs:   <br>
- * <ul>
- * <li>Source Code Transformation</li>
- * <li>Operator Overloading</li>
- * </ul>
- * 
- * In source code transformation, a function representing the derivate of another function <br>
- * is created by a compiler, where as in operator overloading the program itself is coded to <br>
- * handle the derivative of elementary operations and functions. ADNumber implements operator <br>
- * overloading to achieve derivatives. <br>
- * <br>
- * <br>
- * @section Overview ADNumber Overview
- * 
- * To achieve AD, ADNumber utilizes expression trees that are built as expressions are evaluated. <br>
- * These expression trees are encapsulated in a special type called ADNumber. Furthermore, template<br>
- * programming is utilized, allowing end users to use custom types, such as arbitrary floating point<br>
- * data types for extended precision in their computations.<br>
- * <br>
- * <br>
- * @section EXPRESSION_TREE Expression Trees
- * 
- * As mentioned above, expression trees are used to "record" the evaluated expressions.To start, we must<br>
- * define the expression tree class:
- * 
- * 
-\f$ 
-f = \frac{x_1}{x_2}
-\f$
- * <br><br>
-\f$ 
-\frac{df}{dx} = 
- \frac{1 * x_2 - x_1 * 1}{x_2 * x_2}
-\f$
-
-
- * 
- * 
- * 
- * 
- */
-
-//#define USE_MEMORY_POOL need to create a thread safe memory pool like GCPool
-
-#include <complex>
-#include <string>
-#include <sstream>
+#include <stdlib.h> 
+#include <stdexcept>
 #include <iostream>
+#include <sstream>
 #include <vector>
+#include <list>
+#include <stack>
 #include <map>
 #include <cmath>
+#include <assert.h>
+#include <queue>
+#include <utility>
+#include <string>
 #include <limits>
 #include <stdint.h>
-#include <assert.h>
 
 
-//#define USE_CLFMALLOC//USE_MEMORY_POOL //USE_THREAD_ALLOCATOR
 
-#ifdef USE_THREAD_ALLOCATOR
-
-#include "threadalloc/threadalloc.h"
-//#define REDEFINE_DEFAULT_NEW_OPERATOR
-
-#endif
-//#define USE_CLFMALLOC
-//USE_TS_MEMORY_POOL
-//USE_TCMALLOC 
-/// USE_CLFMALLOC //USE_MEMORY_POOL 
-//USE_CLFMALLOC
+#define USE_CLFMALLOC
 
 #ifdef USE_CLFMALLOC
+
 #include "clfmalloc.h"
+
 #endif
 
-#ifdef USE_TS_MEMORY_POOL
-#include "ts_memory_pool/static_mem_pool.h"
+#define USE_FAST_STACK
+
+#ifdef USE_FAST_STACK
+
+#ifdef ADNUMBER_MPI_SUPPORT
+#include <mpi.h>
 #endif
 
 
-#ifdef USE_MEMORY_POOL
-#include "memory_pool/memory_pool.hpp"
-#endif
-
-
-#ifdef AD_DEBUG
-#define AD_TRACE(x) std::cout<<x;
+//std::stack<Expression<T>*, std::vector<Expression<T>* > >
+#define ExpressionStack FastStack<Expression<T>* >
+//std::stack<T, std::vector<T> >
+#define TypeStack FastStack<T>
+#define PairStack FastStack<std::pair<T, T> > stack;
 #else
-#define AD_TRACE(x) //std::cout<<x;
+
+
+//std::stack<Expression<T>*, std::vector<Expression<T>* > >
+#define ExpressionStack std::stack<Expression<T>*, std::vector<Expression<T>* > >
+//std::stack<T, std::vector<T> >
+#define TypeStack std::stack<T, std::vector<T> >
+#define PairStack std::stack<std::pair<T, T>, std::vector<std::pair<T, T> > > stack(vect);
+
 #endif
 
 
 
+#define ExpressionPtr Expression<T>*
+
+
+
+#define NEW_EXPRESSION(T)  new ad::Expression<T>
+
+#define DELETE_EXPRESSION(x) delete x
 
 namespace ad {
+
+    template<class T> class ADNumber;
+
+    template<class T>
+    static T DerivativeValue(const ADNumber<T> &x, const ADNumber<T> &wrt, unsigned int order = 1);
+
+    template<class T>
+    static const ADNumber<T> Derivative(const ADNumber<T> &x, const ADNumber<T> &wrt, unsigned int order = 1);
+
+    template<class T>
+    const std::string ToString(const ADNumber<T> &x, bool latex = true);
+
+#ifdef COLLECTION_TRACE
+    std::vector<std::pair<void*, std::string> > collected_garbage;
+#endif
 
     /*!
      * Creates a unique identifier.
@@ -198,7 +147,7 @@ namespace ad {
     public:
         static IDGenerator * instance();
 
-        const uint32_t next() {
+        const unsigned long next() {
             return _id++;
         }
     private:
@@ -206,21 +155,104 @@ namespace ad {
         IDGenerator() : _id(1) {
         }
 
-        uint32_t _id;
+        unsigned long _id;
     };
 
-
-    static IDGenerator * only_copy;
+    static IDGenerator* only_copy;
 
     inline IDGenerator *
     IDGenerator::instance() {
+
         if (!only_copy) {
             only_copy = new IDGenerator();
         }
+
         return only_copy;
     }
 
-    //!Operations used by ExpressionTree
+    template <class T>
+    class FastStack {
+    public:
+        T* st;
+        int allocationSize;
+        int lastIndex;
+
+    public:
+        FastStack(int stackSize = 100);
+        // FastStack();
+        ~FastStack();
+
+        inline void resize(int newSize);
+        inline void push(T x);
+        inline void pop();
+        inline T getAndRemove();
+        inline T top();
+        inline void clear();
+
+        inline const int empty() {
+            return this->lastIndex == -1;
+        }
+    };
+
+    //template <class T>
+    //FastStack<T>::FastStack() {
+    //    lastIndex = -1;
+    //    st = NULL;
+    //}
+
+    template <class T>
+    FastStack<T>::FastStack(int stackSize) {
+        st = NULL;
+        this->allocationSize = stackSize;
+        st = (T*) malloc(sizeof (T) * stackSize);
+        lastIndex = -1;
+    }
+
+    template <class T>
+    FastStack<T>::~FastStack() {
+        free(st);
+    }
+
+    template <class T>
+    void FastStack<T>::clear() {
+        lastIndex = -1;
+    }
+
+    template <class T>
+    T FastStack<T>::top() {
+
+        return st[lastIndex];
+    }
+
+    template <class T>
+    T FastStack<T>::getAndRemove() {
+        return st[lastIndex--];
+    }
+
+    template <class T>
+    void FastStack<T>::pop() {
+        --lastIndex;
+    }
+
+    template <class T>
+    void FastStack<T>::push(T x) {
+        if (++lastIndex == (this->allocationSize)) {
+
+            this->allocationSize += this->allocationSize;
+            st = (T *) realloc(st, this->allocationSize * sizeof (T));
+            //        free(st);
+            //        this->st = temp;
+        }
+
+        st[lastIndex] = x;
+    }
+
+    template <class T>
+    void FastStack<T>::resize(int newSize) {
+        if (st != NULL)
+            delete [] st;
+        st = new T[newSize];
+    }
 
     enum Operation {
         MINUS = 0,
@@ -254,92 +286,175 @@ namespace ad {
         NONE
     };
 
-    /*!
-     *
-     * Template class Expression Tree. Used to record evaluated expression.
-     * Ultimately used for arbitrary order reverse mode differentiation,
-     * uncertainty, and calculation of propagated error.
-     * 
-     */
     template<class T>
     class Expression {
+        T value_m;
+        ExpressionPtr left_m;
+        ExpressionPtr right_m;
+        unsigned long id_m;
+        Operation op_m;
+        mutable int count_m;
+        std::string name_m;
+#ifdef AD_THREAD_SAFE
+        mutable Mutex mutex;
+#endif
+
     public:
 
-        enum MODE {
-            FORWARD = 0,
-            REVERSE
-        };
-
-        /*!
-         * Constructor.
-         * 
-         * @param id
-         * @param op
-         * @param value
-         * @param left
-         * @param right
-         */
-        Expression(const unsigned int &id, const Operation &op,
-                const T &value,
-                Expression<T>* left,
-                Expression<T>* right) :
-        id_m(id),
-        op_m(op),
-        value_m(value),
-        left_m(left),
-        right_m(right),
-        epsilon_m(std::numeric_limits<T>::epsilon()) {
-
-        }
-
-        /*!
-         * Default constructor.
-         */
-        Expression() :
+        Expression()
+        : right_m(NULL),
         left_m(NULL),
-        right_m(NULL),
-        value_m(T(1.0)),
+        op_m(CONSTANT),
+        //name("na"),
         id_m(0),
-        op_m(VARIABLE),
-        epsilon_m(std::numeric_limits<T>::epsilon()) {
+        value_m(T(0.0)),
+        count_m(0) {
+
 
         }
 
-        /*!
-         *Copy Constructor.
-         */
-        Expression(const Expression &orig) :
-        id_m(orig.id_m),
-        op_m(orig.op_m),
-        value_m(orig.value_m),
-        left_m(NULL),
-        right_m(NULL),
-        epsilon_m(std::numeric_limits<T>::epsilon()) {
-
-            if (orig.left_m != NULL) {
-                this->left_m = orig.left_m->Clone();
-            }
-            if (orig.right_m != NULL) {
-                this->right_m = orig.right_m->Clone();
+        Expression(const T &value, const unsigned long &id, const std::string &name, const Operation &op, ExpressionPtr left, ExpressionPtr right)
+        : right_m(right),
+        left_m(left),
+        op_m(op),
+        name_m(name),
+        id_m(id),
+        value_m(value),
+        count_m(0) {
+            if (left != NULL) {
+                left->take();
             }
 
-            // this = orig.Clone();
-        }
-
-        /*!
-         * Destructor.
-         */
-        virtual ~Expression() {
-
-            if (this->left_m) {
-                delete this->left_m;
-            }
-
-            if (this->right_m) {
-                delete this->right_m;
+            if (right != NULL) {
+                right->take();
             }
         }
 
+        Expression(const T &value, const unsigned long &id, const Operation &op, ExpressionPtr left, ExpressionPtr right)
+        : right_m(right),
+        left_m(left),
+        op_m(op),
+        id_m(id),
+        value_m(value),
+        count_m(0) {
+            if (left != NULL) {
+                left->take();
+            }
+
+            if (right != NULL) {
+                right->take();
+            }
+        }
+
+        ~Expression() {
+
+
+        }
+
+        inline void take() const {
+            ++count_m;
+        }
+
+        inline void release(bool ignore_delete = false) {
+            //            if (count <= 0) {
+            //                std::cout << "assert" << ToString() << "\n" << std::flush;
+            //            }
+
+
+            assert(count_m > 0);
+            --count_m;
+
+            if (count_m == 0 && !ignore_delete) {
+
+                ExpressionStack stack;
+
+                ExpressionPtr n = this;
+                bool do_delete = false;
+
+                do {
+                    do_delete = false;
+                    if (n != NULL) {
+
+                        //visit
+                        if (n->count_m == 0) {
+                            do_delete = true;
+                            if (n->GetLeft() != NULL) {
+                                n->GetLeft()->release(true);
+                            }
+
+                            if (n->GetRight() != NULL) {
+                                n->GetRight()->release(true);
+                            }
+
+                        }
+
+
+                        if (n->GetRight() != NULL) {
+                            stack.push(n->GetRight());
+                        }
+
+                        if (do_delete) {
+                            ExpressionPtr exp = n;
+                            n = n->GetLeft();
+                            if (exp != this) {
+                                free(exp);
+                            }
+                        } else {
+                            n = n->GetLeft();
+                        }
+
+
+
+                    } else {
+                        n = stack.top();
+                        stack.pop();
+                    }
+
+
+                } while (!stack.empty() || n != NULL);
+
+                free(this);
+            }
+        }
+
+        inline int References() const {
+            return count_m;
+        }
+
+
+
+        //   
+        //        const std::vector<Expression<T>* > List() {
+        //
+        //            std::stack <Expression<T> * > S;
+        //            std::vector<Expression<T>* > list;
+        //            Expression<T>* p = this;
+        //
+        //            do {
+        //                while (p != NULL) {
+        //                    // store a node in the stack and visit it's left child
+        //                    S.push(p);
+        //                    p = p->GetLeft();
+        //                }
+        //
+        //                // If there are nodes in the stack to which we can move up
+        //                // then pop it
+        //                if (!S.empty()) {
+        //                    p = S.top();
+        //                    S.pop();
+        //
+        //                    // print the nodes value
+        //                    //  cout << " -" << p->GetId() << "- ";
+        //                    list.push_back(p);
+        //
+        //                    // vistit the right child now
+        //                    p = p->GetRight();
+        //                }
+        //
+        //                // while the stack is not empty or there is a valid node
+        //            } while (!S.empty() || p != NULL);
+        //            return list;
+        //        }
 
 #ifdef USE_CLFMALLOC
 
@@ -351,2530 +466,154 @@ namespace ad {
 
         void operator delete (void* ptr)throw () {
             free(ptr);
+            ptr = NULL;
         }
 #endif
 
-        size_t Size() {
-            return this->Size(this);
+        const unsigned long GetId() const {
+            return id_m;
         }
 
-        /*!
-         * Create a clone of this expression. The same as using
-         * copy constructor.
-         * @return 
-         */
-        Expression<T>* Clone() {
-            return new Expression(*this);
+        void SetId(const unsigned long &id) {
+            id_m = id;
         }
 
-        /*!
-         * Evaluate this expression. 
-         * @return 
-         */
-        const T Evaluate(MODE mode = REVERSE) const {
-
-            T l = T(0);
-            T r = T(0);
-
-            switch (mode) {
-                case FORWARD:
-
-                    if (this->left_m != NULL) {
-                        l = this->left_m->Evaluate(mode);
-                    }
-
-
-                    if (this->right_m != NULL) {
-                        r = this->right_m->Evaluate(mode);
-                    }
-
-
-                    break;
-                case REVERSE:
-
-                    if (this->right_m != NULL) {
-                        r = this->right_m->Evaluate(mode);
-                    }
-
-                    if (this->left_m != NULL) {
-                        l = this->left_m->Evaluate(mode);
-                    }
-
-                    break;
-
-                default:
-                    if (this->right_m != NULL) {
-                        r = this->right_m->Evaluate(mode);
-                    }
-
-                    if (this->left_m != NULL) {
-                        l = this->left_m->Evaluate(mode);
-                    }
-
-                    break;
-
-            }
-
-
-            switch (op_m) {
-                case CONSTANT:
-                    AD_TRACE("CONST[" << this->value_m << "]")
-                    return this->value_m;
-                case VARIABLE:
-                    AD_TRACE("VAR[" << this->value_m << "]")
-                    return this->value_m;
-                case MINUS:
-                    AD_TRACE(" - ")
-                    return (l - r);
-                case PLUS:
-                    AD_TRACE(" + ")
-                    return (l + r);
-                case DIVIDE:
-                    AD_TRACE(" / ")
-                    return (l / r);
-                case MULTIPLY:
-                    AD_TRACE(" * ")
-                    return (l * r);
-                case SIN:
-                    AD_TRACE(" sin ")
-                    return sin(l);
-                case COS:
-                    AD_TRACE(" cos ")
-                    return cos(l);
-                case TAN:
-                    AD_TRACE(" tan ")
-                    return tan(l);
-                case ASIN:
-                    AD_TRACE(" asin ")
-                    return asin(l);
-                case ACOS:
-                    AD_TRACE(" acos ")
-                    return acos(l);
-                case ATAN:
-                    AD_TRACE(" atan ")
-                    return atan(l);
-                case ATAN2:
-                    AD_TRACE(" atan2 ")
-                    return atan2(l, r);
-                    //                case ATAN3:
-                    //                    break;
-                    //                case ATAN4:
-                    //                    break;
-                case SQRT:
-                    AD_TRACE(" sqrt ")
-                    return sqrt(l);
-                case POW:
-                    AD_TRACE(" pow ")
-                    return pow(l, r);
-                    //                case POW1:
-                    //                    break;
-                    //                case POW2:
-                    //                    break;
-                case LOG:
-                    AD_TRACE(" log ")
-                    return log(l);
-                case LOG10:
-                    AD_TRACE(" log10 ")
-                    return log10(l);
-                case EXP:
-                    AD_TRACE(" exp ")
-                    return exp(l);
-                case SINH:
-                    AD_TRACE(" sinh ")
-                    return sinh(l);
-                case COSH:
-                    AD_TRACE(" cosh ")
-                    return cosh(l);
-                case TANH:
-                    AD_TRACE(" tanh ")
-                    return tanh(l);
-                case FABS:
-                    AD_TRACE(" fabs ")
-                    return fabs(l);
-                case ABS:
-                    AD_TRACE(" abs ")
-                    return abs(l);
-                case FLOOR:
-                    AD_TRACE(" floor ")
-                    return floor(l);
-                case NONE:
-                    AD_TRACE(" none ")
-                    return this->value_m;
-                default:
-                    return T(0);
-            }
-            return T(0);
+        ExpressionPtr GetLeft() const {
+            return left_m;
         }
 
-        /*!
-         * Evaluate the proagated error for this expression. 
-         * @return 
-         */
-        const T PropagatedError() const {
-
-            T a; // = this->left_->Evaluate();
-            T err_a; // = this->left_->Error();
-            T b; // = this->right_->Evaluate();
-            T err_b; // = this->right_->Error();
-            T temp_;
-            T error;
-
-            switch (op_m) {
-
-
-                case CONSTANT:
-                    return this->epsilon_m;
-                case VARIABLE:
-                    return this->epsilon_m;
-                case MINUS:
-                    return (this->left_m->PropagatedError() * this->left_m->PropagatedError() + this->right_m->PropagatedError() * this->right_m->PropagatedError());
-                case PLUS:
-                    return (this->left_m->PropagatedError() * this->left_m->PropagatedError() + this->right_m->PropagatedError() * this->right_m->PropagatedError());
-                case DIVIDE:
-
-                    if (this->left_m) {
-                        a = this->left_m->Evaluate();
-                    } else {
-                        a = T(0);
-                    }
-                    err_a = this->left_m->PropagatedError();
-                    if (this->right_m) {
-                        b = this->right_m->Evaluate();
-                    } else {
-                        b = T(0);
-                    }
-                    err_b = this->right_m->PropagatedError();
-                    return std::sqrt((err_a * err_a) / (b * b) + (a * a) *(err_b * err_b)*(b * b * b * b));
-
-                case MULTIPLY:
-
-                    if (this->left_m) {
-                        a = this->left_m->Evaluate();
-                    } else {
-                        a = T(0);
-                    }
-                    err_a = this->left_m->PropagatedError();
-                    if (this->right_m) {
-                        b = this->right_m->Evaluate();
-                    } else {
-                        b = T(0);
-                    }
-                    err_b = this->right_m->PropagatedError();
-
-                    return std::sqrt((b * b)* (err_a * err_a)+(a * a)*(err_b * err_b));
-
-                case SIN:
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-
-                    return std::fabs(std::cos(a) * err_a);
-                case COS:
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-
-                    return std::fabs(std::sin(a) * err_a);
-                case TAN:
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-                    return std::fabs(err_a / std::pow(std::cos(a), T(2.0)));
-                case ASIN:
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-                    return (err_a / sqrt(T(1.0) - pow(a, T(2.0))));
-                case ACOS:
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-                    return (err_a / sqrt(T(1.0) + pow(a, 2.0)));
-                case ATAN:
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-                    return (err_a / sqrt(T(1.0) + pow(a, 2.0)));
-                case ATAN2:
-
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-                    b = this->right_m->Evaluate();
-                    err_b = this->right_m->PropagatedError();
-
-                    temp_ = fabs(a / b) *
-                            sqrt(pow(err_a / a, T(2.0)) +
-                            pow(err_b / b, T(2.0)));
-                    error = fabs(temp_ / (T(1.0) + pow(a / b, T(2.0))));
-
-                    return error;
-                case ATAN3:
-                    break;
-                case ATAN4:
-                case SQRT:
-
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-
-                    return std::fabs(err_a / T(2) * sqrt(a));
-                case POW:
-
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-                    b = this->right_m->Evaluate();
-                    err_b = this->right_m->PropagatedError();
-
-                    return sqrt((b * b) * std::pow(a, (b - T(1)))*(err_a * err_a) + std::log(a) * std::log(a) * std::pow(a, b)*(err_b * err_b));
-                case POW1:
-                    break;
-                case POW2:
-                    break;
-                case LOG:
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-                    return std::fabs(err_a / a);
-                case LOG10:
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-                    return std::fabs(err_a / a * std::log10(T(10.0)));
-                case EXP:
-                    if (this->left_m) {
-                        a = this->left_m->Evaluate();
-                        b = this->left_m->Evaluate();
-                    } else {
-                        a = std::numeric_limits<T>::epsilon();
-                        b = std::numeric_limits<T>::epsilon();
-                    }
-
-                    return std::fabs(std::exp(a) * b);
-                case SINH:
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-
-                    return std::fabs(std::cosh(a) * err_a);
-                case COSH:
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-
-                    return std::fabs(std::sinh(a) * err_a);
-                case TANH:
-                    a = this->left_m->Evaluate();
-                    err_a = this->left_m->PropagatedError();
-                    return std::fabs(err_a / std::pow(std::cosh(a), T(2.0)));
-                case FABS:
-                    return this->left_m->PropagatedError();
-                case ABS:
-                    return this->left_m->PropagatedError();
-                case FLOOR:
-                    return this->left_m->PropagatedError();
-                case NONE:
-                    return this->left_m->PropagatedError();
-                default:
-                    return this->epsilon_m;
-            }
-            return this->epsilon_m;
-        }
-
-        /*!
-         * Builds a expression tree representing the derivative of this
-         * tree.(reverse mode) 
-         * 
-         * @return Expression<T>
-         */
-        Expression<T>* Differentiate() {
-
-
-            Expression<T>* ret = new Expression<T > ();
-
-
-            switch (op_m) {
-
-                case CONSTANT:
-                    //f(x) = C
-                    //f'(x) = 0
-
-                    ret->op_m = CONSTANT;
-                    ret->value_m = T(0.0);
-
-                    //                 
-                    return ret;
-
-                case VARIABLE:
-                    //f(x) = x
-                    //f'(x) = 1
-
-                    ret->op_m = CONSTANT;
-                    ret->value_m = T(1.0);
-
-
-                    return ret;
-                case MINUS:
-                    //f(x) = g(x) - h(x)
-                    //f'(x) = g'(x) - h'(x)
-
-                    ret->op_m = MINUS;
-                    if (this->left_m != NULL) {
-                        ret->left_m = this->left_m->Differentiate();
-
-                    }
-
-                    if (this->right_m != NULL) {
-                        ret->right_m = this->right_m->Differentiate();
-                    }
-
-                    return ret;
-                case PLUS:
-                    //f(x) = g(x) + h(x)
-                    //f'(x) = g'(x) + h'(x)
-
-                    ret->op_m = PLUS;
-                    if (this->left_m != NULL) {
-                        ret->left_m = this->left_m->Differentiate();
-                    }
-
-                    if (this->right_m != NULL) {
-                        ret->right_m = this->right_m->Differentiate();
-                    }
-
-
-                    return ret;
-                case DIVIDE:
-                    //f(x) = g(x)/h(x);
-                    //f'(x) = (g'(x)h(x) - g(x)h'(x))/h(x)^2
-
-                    ret->op_m = DIVIDE;
-
-                    ret->left_m = new Expression<T > (); //g'(x)h(x) - g(x)h'(x)
-                    ret->left_m->op_m = MINUS;
-
-
-                    ret->left_m->left_m = new Expression<T > (); //g'(x)h(x)
-                    ret->left_m->left_m->op_m = MULTIPLY;
-                    if (this->left_m != NULL) {
-                        ret->left_m->left_m->left_m = this->left_m->Differentiate();
-                    }
-                    ret->left_m->left_m->right_m = this->right_m->Clone();
-
-                    ret->left_m->right_m = new Expression<T > (); //g(x)h'(x)
-                    ret->left_m->right_m->op_m = MULTIPLY;
-                    ret->left_m->right_m->left_m = this->left_m->Clone();
-                    if (this->right_m != NULL) {
-                        ret->left_m->right_m->right_m = this->right_m->Differentiate();
-                    }
-
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = MULTIPLY;
-                    ret->right_m->left_m = this->right_m->Clone();
-                    ret->right_m->right_m = this->right_m->Clone();
-
-
-                    return ret;
-
-                case MULTIPLY:
-                    //f(x) = g(x)h(x);
-                    //f'(x) = g'(x)h(x) + g(x)h'(x)
-
-                    if (this->left_m->op_m == CONSTANT
-                            && this->right_m->op_m != CONSTANT) {
-                        ret->op_m = MULTIPLY;
-
-                        ret->left_m = this->left_m->Clone();
-                        ret->right_m = this->right_m->Differentiate();
-
-
-                    } else if (this->right_m->op_m == CONSTANT
-                            && this->left_m->op_m != CONSTANT) {
-                        ret->op_m = MULTIPLY;
-
-                        ret->left_m = this->left_m->Differentiate();
-                        ret->right_m = this->right_m->Clone();
-
-                    } else {
-
-
-
-                        ret->op_m = PLUS;
-
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-
-                        ret->left_m->right_m = this->right_m->Clone();
-
-                        if (this->right_m != NULL) {
-                            ret->left_m->left_m = this->left_m->Differentiate();
-                        }
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = MULTIPLY;
-
-                        ret->right_m->left_m = this->left_m->Clone();
-                        if (this->left_m != NULL) {
-                            ret->right_m->right_m = this->right_m->Differentiate();
-                        }
-
-
-
-                    }
-
-                    return ret;
-
-                case SIN:
-                    //f'(x) = cos(x)
-
-                    ret->op_m = COS;
-                    ret->left_m = this->left_m->Clone();
-
-
-                    return ret;
-
-                case COS:
-                    //f'(x) = -sin(x)
-
-                    ret->op_m = MULTIPLY;
-
-
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = CONSTANT;
-                    ret->left_m->value_m = T(-1.0);
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = SIN;
-                    ret->right_m->left_m = this->left_m->Clone();
-
-
-                    return ret;
-                case TAN:
-                    //f(x) = tan(x)
-                    //f'(x) = (1/cos(x))(1/cos(x))
-
-                    ret->op_m = MULTIPLY;
-
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = DIVIDE;
-
-                    ret->left_m->left_m = new Expression<T > ();
-                    ret->left_m->left_m->op_m = CONSTANT;
-                    ret->left_m->left_m->value_m = T(1.0);
-
-                    ret->left_m->right_m = new Expression<T > ();
-                    ret->left_m->right_m->op_m = COS;
-                    ret->left_m->right_m->left_m = this->left_m->Clone();
-
-                    ret->right_m = ret->left_m->Clone();
-
-
-                    return ret;
-                case ASIN:
-                    //f(x) = asin(x)
-                    //f'(x) = 1/(2 sqrt(1-x^2)= 1/(pow((1-pow(x,2)),0.5)
-
-                    ret->op_m = DIVIDE;
-
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = CONSTANT;
-                    ret->left_m ->value_m = T(1.0);
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = POW;
-
-                    ret->right_m->left_m = new Expression<T > ();
-                    ret->right_m->left_m->op_m = MINUS;
-
-                    ret->right_m->left_m->left_m = new Expression<T > ();
-                    ret->right_m->left_m->left_m->op_m = CONSTANT;
-                    ret->right_m->left_m->left_m->value_m = T(1.0);
-
-                    ret->right_m->left_m->right_m = new Expression<T > ();
-                    ret->right_m->left_m->right_m->op_m = POW;
-                    ret->right_m->left_m->right_m->left_m = this->left_m->Clone();
-
-                    ret->right_m->left_m->right_m->right_m = new Expression<T > ();
-                    ret->right_m->left_m->right_m->right_m->op_m = CONSTANT;
-                    ret->right_m->left_m->right_m->right_m->value_m = T(2.0);
-
-                    ret->right_m->right_m = new Expression<T > ();
-                    ret->right_m->right_m->op_m = CONSTANT;
-                    ret->right_m->right_m->value_m = T(0.5);
-
-                    return ret;
-                case ACOS:
-                    //f(x) = acos(x)
-                    //f'(x) = -1/(sqrt(1-x^2) = -1/(pow((1-pow(x,2)),0.5)
-                    //-1/sqrt(1-x^2)
-
-                    ret->op_m = DIVIDE;
-
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = CONSTANT;
-                    ret->left_m ->value_m = T(-1.0);
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = POW;
-
-                    ret->right_m->left_m = new Expression<T > ();
-                    ret->right_m->left_m->op_m = MINUS;
-
-                    ret->right_m->left_m->left_m = new Expression<T > ();
-                    ret->right_m->left_m->left_m->op_m = CONSTANT;
-                    ret->right_m->left_m->left_m->value_m = T(1.0);
-
-                    ret->right_m->left_m->right_m = new Expression<T > ();
-                    ret->right_m->left_m->right_m->op_m = POW;
-                    ret->right_m->left_m->right_m->left_m = this->left_m->Clone();
-
-                    ret->right_m->left_m->right_m->right_m = new Expression<T > ();
-                    ret->right_m->left_m->right_m->right_m->op_m = CONSTANT;
-                    ret->right_m->left_m->right_m->right_m->value_m = T(2.0);
-
-                    ret->right_m->right_m = new Expression<T > ();
-                    ret->right_m->right_m->op_m = CONSTANT;
-                    ret->right_m->right_m->value_m = T(0.5);
-
-                    return ret;
-                case ATAN:
-                    //f(x) = atan(x)
-                    //f'(x) 1/(x^2+1)
-
-                    ret->op_m = DIVIDE;
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = CONSTANT;
-                    ret->left_m ->value_m = T(1.0);
-
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = PLUS;
-
-                    ret->right_m->left_m = new Expression<T > ();
-                    ret->right_m->left_m->op_m = MULTIPLY;
-                    ret->right_m->left_m->left_m = this->left_m->Clone();
-                    ret->right_m->left_m->right_m = this->left_m->Clone();
-
-
-                    ret->right_m->right_m = new Expression<T > ();
-                    ret->right_m->right_m->op_m = CONSTANT;
-                    ret->right_m->right_m->value_m = T(1.0);
-
-
-                    return ret;
-                case ATAN2:
-                    //f(x) = atan2(x,y)
-                    //f'(x) y/(x^2+y^2)
-
-                    ret->op_m = DIVIDE;
-                    ret->left_m = this->right_m->Clone(); //y
-
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = PLUS;
-
-                    ret->right_m->left_m = new Expression<T > ();
-                    ret->right_m->left_m->op_m = MULTIPLY;
-                    ret->right_m->left_m->left_m = this->left_m->Clone();
-                    ret->right_m->left_m->right_m = this->left_m->Clone();
-
-
-                    ret->right_m->right_m = new Expression<T > ();
-                    ret->right_m->right_m->op_m = MULTIPLY;
-                    ret->right_m->right_m->left_m = this->right_m->Clone();
-                    ret->right_m->right_m->right_m = this->right_m->Clone();
-
-
-                    return ret;
-
-                    //  case ATAN4:
-                case SQRT:
-                    //f(x) = sqrt(x)
-                    //f'(x) = .5/sqrt(x)
-
-                    ret->op_m = DIVIDE;
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = CONSTANT;
-                    ret->left_m->value_m = T(0.5);
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = SQRT;
-                    ret->right_m->left_m = this->left_m->Clone();
-
-
-
-                    return ret;
-                case POW:
-                    //f(x) =  x^y
-                    //f'(x) = yx^y-1
-
-                    ret->op_m = MULTIPLY;
-
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = MULTIPLY;
-                    ret->left_m->left_m = this->left_m->Differentiate();
-                    ret->left_m->right_m = this->right_m->Clone();
-
-
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = POW;
-
-
-                    ret->right_m->left_m = this->left_m->Clone();
-
-
-                    ret->right_m->right_m = new Expression<T > ();
-                    ret->right_m->right_m->op_m = MINUS;
-                    ret->right_m->right_m->left_m = this->right_m->Clone();
-
-                    ret->right_m->right_m->right_m = new Expression<T > ();
-                    ret->right_m->right_m->right_m->op_m = CONSTANT;
-                    ret->right_m->right_m->right_m->value_m = T(1.0);
-
-
-
-                    return ret;
-                    //                case POW1:
-                    //
-                    //                    break;
-                    //                    //                return pow(this->left_value_, this->right_value_ - T(1.0));
-                    //                case POW2:
-                    //                    break;
-                    //                    //                return pow(this->left_value_, this->right_value_ - T(1.0));
-                case LOG:
-                    //f(x) = log(x)
-                    //f'(x) = 1/x
-
-                    ret->op_m = DIVIDE;
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = CONSTANT;
-                    ret->left_m->value_m = T(1.0);
-
-                    ret->right_m = this->left_m->Clone();
-
-
-
-                    return ret;
-                case LOG10:
-                    //f(x) = log10(x)
-                    //f'(x) = 1/(xlog(10))
-
-                    ret->op_m = DIVIDE;
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = CONSTANT;
-                    ret->left_m->value_m = T(1.0);
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = MULTIPLY;
-
-                    ret->right_m->left_m = this->left_m->Clone();
-
-                    ret->right_m->right_m = new Expression<T > ();
-                    ret->right_m->right_m->op_m = CONSTANT;
-                    ret->right_m->right_m->value_m = log(T(10.0));
-                    /*
-                    ret->right_->right_->left_ = new Expression<T > ();
-                    ret->right_->right_->left_->op_ = CONSTANT;
-                    ret->right_->right_->left_->value_ = T(10.0);
-                     */
-
-                    return ret;
-                case EXP:
-                    //f(x) = e^x
-                    //f'(x) =e^x
-
-                    ret->op_m = EXP;
-                    ret->left_m = this->left_m->Clone();
-
-
-                    return ret;
-                case SINH:
-                    //f(x) = sinh(x)
-                    //f'(x) = cosh(x)
-
-                    ret->op_m = COSH;
-                    ret->left_m = this->left_m->Clone();
-
-
-                    return ret;
-                case COSH:
-                    ret->op_m = SINH;
-                    ret->left_m = this->left_m->Clone();
-
-
-                    return ret;
-                case TANH:
-                    //f(x) = tanh(x)
-                    //f'(x) sech^2
-
-
-                    ret->op_m = MULTIPLY;
-
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = DIVIDE;
-                    ret->left_m->left_m = new Expression<T > ();
-                    ret->left_m->left_m->op_m = CONSTANT;
-                    ret->left_m->left_m->value_m = T(1.0);
-
-                    ret->left_m->right_m = new Expression<T > ();
-                    ret->left_m->right_m->op_m = COSH;
-                    ret->left_m->right_m->left_m = this->left_m->Clone();
-
-                    ret->right_m = ret->left_m->Clone();
-
-
-                    return ret;
-
-                case FABS:
-
-                    ret->op_m = DIVIDE;
-                    ret->left_m = this->left_m->Clone();
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = FABS;
-                    ret->right_m->left_m = this->left_m->Clone();
-
-
-
-                    return ret;
-                case ABS:
-
-                    ret->op_m = DIVIDE;
-                    ret->left_m = this->left_m->Clone();
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = ABS;
-                    ret->right_m->left_m = this->left_m->Clone();
-
-
-                    return ret;
-
-                case FLOOR:
-
-                    ret->op_m = FLOOR;
-                    ret->left_m = this->left_m->Clone();
-
-
-                    return ret;
-                case NONE://shouldn't happen.
-                    return this->Clone();
-
-                default:
-                    return NULL;
-            }
-            return NULL;
-        }
-
-        bool HasID(const uint32_t &id) {
-            //     std::cout << this->id_ << " ?= " << id << "\n";
-            if (this->id_m == id) {
-                return true;
-            }
-            if (this->left_m) {
-                if (this->left_m->HasID(id)) {
-                    return true;
-                }
+        void SetLeft(ExpressionPtr left) {
+            if (GetLeft() != NULL) {
+                GetLeft()->release();
             }
 
-            if (this->right_m) {
-                if (this->right_m->HasID(id)) {
-                    return true;
-                }
+            if (left != NULL) {
+                left->take();
             }
-
-            return false;
-        }
-
-        /*!
-         * Builds a expression tree representing the derivative with respect to 
-         * some ADNumber via its id.(reverse mode) 
-         * 
-         * @return Expression<T>
-         */
-        Expression<T>* Differentiate(const uint32_t &id) {
-            //#warning need to check partial derivatives....
-
-            Expression<T>* ret = new Expression<T > ();
-
-
-            switch (op_m) {
-
-                case CONSTANT:
-                    //f(x) = C
-                    //f'(x) = 0
-
-                    ret->op_m = CONSTANT;
-                    ret->value_m = T(0); //this->value_;
-
-
-                    return ret;
-
-                case VARIABLE:
-                    if (this->id_m == id) {
-                        //f(x) = x
-                        //f'(x) = 1
-
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(1.0);
-
-
-                        return ret;
-                    } else {//constant
-                        //f(x) = C
-                        //f'(x) = 0
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-                        return ret;
-                    }
-                case MINUS:
-
-                    //f(x) = g(x) - h(x)
-                    //f'(x) = g'(x) - h'(x)
-
-                    ret->op_m = MINUS;
-                    if (this->left_m) {
-                        ret->left_m = this->left_m->Differentiate(id);
-
-                    }
-
-                    if (this->right_m) {
-                        ret->right_m = this->right_m->Differentiate(id);
-                    }
-
-                    return ret;
-
-                case PLUS:
-
-                    //f(x) = g(x) + h(x)
-                    //f'(x) = g'(x) + h'(x)
-
-                    ret->op_m = PLUS;
-                    if (this->left_m) {
-                        ret->left_m = this->left_m->Differentiate(id);
-                    }
-
-                    if (this->right_m) {
-                        ret->right_m = this->right_m->Differentiate(id);
-                    }
-
-
-                    return ret;
-
-                case DIVIDE:
-
-                    //f(x) = g(x)/h(x);
-                    //f'(x) = (g'(x)h(x) - g(x)h'(x))/h(x)^2
-
-
-                    ret->op_m = DIVIDE;
-
-                    ret->left_m = new Expression<T > (); //g'(x)h(x) - g(x)h'(x)
-                    ret->left_m->op_m = MINUS;
-
-
-                    ret->left_m->left_m = new Expression<T > (); //g'(x)h(x)
-                    ret->left_m->left_m->op_m = MULTIPLY;
-                    if (this->left_m) {
-                        ret->left_m->left_m->left_m = this->left_m->Differentiate(id);
-                    }
-                    ret->left_m->left_m->right_m = this->right_m->Clone();
-
-                    ret->left_m->right_m = new Expression<T > (); //g(x)h'(x)
-                    ret->left_m->right_m->op_m = MULTIPLY;
-                    ret->left_m->right_m->left_m = this->left_m->Clone();
-                    if (this->right_m) {
-                        ret->left_m->right_m->right_m = this->right_m->Differentiate(id);
-                    }
-
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = MULTIPLY;
-                    ret->right_m->left_m = this->right_m->Clone();
-                    ret->right_m->right_m = this->right_m->Clone();
-
-
-                    return ret;
-
-                case MULTIPLY:
-                    //f(x) = g(x)h(x);
-                    //f'(x) = g'(x)h(x) + g(x)h'(x)
-
-                    if (this->left_m->op_m == CONSTANT
-                            && this->right_m->op_m != CONSTANT) {
-                        ret->op_m = MULTIPLY;
-                        if (this->left_m) {
-                            ret->left_m = this->left_m->Clone();
-                        }
-                        if (this->right_m) {
-                            ret->right_m = this->right_m->Differentiate(id);
-                        }
-
-
-                    } else if (this->right_m->op_m == CONSTANT
-                            && this->left_m->op_m != CONSTANT) {
-                        ret->op_m = MULTIPLY;
-                        if (this->left_m) {
-                            ret->left_m = this->left_m->Differentiate(id);
-                        }
-                        if (this->right_m) {
-                            ret->right_m = this->right_m->Clone();
-                        }
-                    } else {
-
-
-
-                        ret->op_m = PLUS;
-
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-
-                        ret->left_m->right_m = this->right_m->Clone();
-
-                        if (this->right_m != NULL) {
-                            ret->left_m->left_m = this->left_m->Differentiate(id);
-                        }
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = MULTIPLY;
-
-                        ret->right_m->left_m = this->left_m->Clone();
-                        if (this->left_m != NULL) {
-                            ret->right_m->right_m = this->right_m->Differentiate(id);
-                        }
-
-
-
-                    }
-                    return ret;
-
-                case SIN:
-
-                    if (this->left_m->HasID(id)) {
-                        //f'(x) = cos(x)
-
-                        ret->op_m = MULTIPLY;
-                        ret->left_m = this->left_m->Differentiate(id);
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = COS;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-
-                case COS:
-                    if (this->left_m->HasID(id)) {
-                        //f'(x) = -sin(x)
-
-                        ret->op_m = MULTIPLY;
-
-
-                        ret->left_m = this->left_m->Differentiate(id);
-                        ret->right_m = new Expression<T > ();
-
-                        ret->right_m->op_m = MULTIPLY;
-                        ret->right_m->left_m = new Expression<T > ();
-                        ret->right_m->left_m->op_m = CONSTANT;
-                        ret->right_m->left_m->value_m = T(-1.0);
-
-                        ret->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->op_m = SIN;
-                        ret->right_m->right_m->left_m = this->left_m->Clone();
-
-
-                        return ret;
-
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case TAN:
-                    if (this->left_m->HasID(id)) {
-                        //f'(x) = 1/cos(x)
-
-                        ret->op_m = MULTIPLY;
-                        ret->left_m = this->left_m->Differentiate(id);
-
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = MULTIPLY;
-
-                        ret->right_m->left_m = new Expression<T > ();
-                        ret->right_m->left_m->op_m = DIVIDE;
-
-
-                        ret->right_m->left_m->left_m = new Expression<T > ();
-                        ret->right_m->left_m->left_m->op_m = CONSTANT;
-                        ret->right_m->left_m->left_m->value_m = T(1.0);
-
-
-                        ret->right_m->left_m->right_m = new Expression<T > ();
-                        ret->right_m->left_m->right_m->op_m = COS;
-                        ret->right_m->left_m->right_m->left_m = this->left_m->Clone();
-
-
-                        ret->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->op_m = DIVIDE;
-
-
-                        ret->right_m->right_m->left_m = new Expression<T > ();
-                        ret->right_m->right_m->left_m->op_m = CONSTANT;
-                        ret->right_m->right_m->left_m->value_m = T(1.0);
-
-
-                        ret->right_m->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->right_m->op_m = COS;
-                        ret->right_m->right_m->right_m->left_m = this->left_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case ASIN:
-
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = asin(x)
-                        //f'(x) = 1/(2 sqrt(1-x^2)= 1/(pow((1-pow(x,2)),0.5)
-
-                        ret->op_m = MULTIPLY;
-                        ret->left_m = this->left_m->Differentiate(id);
-
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = DIVIDE;
-
-                        ret->right_m->left_m = new Expression<T > ();
-                        ret->right_m->left_m->op_m = CONSTANT;
-                        ret->right_m->left_m ->value_m = T(1.0);
-
-                        ret->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->op_m = POW;
-
-                        ret->right_m->right_m->left_m = new Expression<T > ();
-                        ret->right_m->right_m->left_m->op_m = MINUS;
-
-                        ret->right_m->right_m->left_m->left_m = new Expression<T > ();
-                        ret->right_m->right_m->left_m->left_m->op_m = CONSTANT;
-                        ret->right_m->right_m->left_m->left_m->value_m = T(1.0);
-
-                        ret->right_m->right_m->left_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->left_m->right_m->op_m = POW;
-                        ret->right_m->right_m->left_m->right_m->left_m = this->left_m->Clone();
-
-                        ret->right_m->right_m->left_m->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->left_m->right_m->right_m->op_m = CONSTANT;
-                        ret->right_m->right_m->left_m->right_m->right_m->value_m = T(2.0);
-
-                        ret->right_m->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->right_m->op_m = CONSTANT;
-                        ret->right_m->right_m->right_m->value_m = T(0.5);
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case ACOS:
-
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = acos(x)
-                        //f'(x) = -1/(sqrt(1-x^2) = -1/(pow((1-pow(x,2)),0.5)
-                        //-1/sqrt(1-x^2)
-                        ret->op_m = MULTIPLY;
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-                        ret->left_m->left_m = new Expression<T > ();
-
-                        ret->left_m->left_m->op_m = CONSTANT;
-                        ret->left_m->left_m->value_m = T(-1.0);
-
-
-                        ret->left_m->right_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = DIVIDE;
-
-                        ret->right_m->left_m = new Expression<T > ();
-                        ret->right_m->left_m->op_m = CONSTANT;
-                        ret->right_m->left_m ->value_m = T(1.0);
-
-                        ret->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->op_m = POW;
-
-                        ret->right_m->right_m->left_m = new Expression<T > ();
-                        ret->right_m->right_m->left_m->op_m = MINUS;
-
-                        ret->right_m->right_m->left_m->left_m = new Expression<T > ();
-                        ret->right_m->right_m->left_m->left_m->op_m = CONSTANT;
-                        ret->right_m->right_m->left_m->left_m->value_m = T(1.0);
-
-                        ret->right_m->right_m->left_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->left_m->right_m->op_m = POW;
-                        ret->right_m->right_m->left_m->right_m->left_m = this->left_m->Clone();
-
-                        ret->right_m->right_m->left_m->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->left_m->right_m->right_m->op_m = CONSTANT;
-                        ret->right_m->right_m->left_m->right_m->right_m->value_m = T(2.0);
-
-                        ret->right_m->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->right_m->op_m = CONSTANT;
-                        ret->right_m->right_m->right_m->value_m = T(0.5);
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case ATAN:
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = atan(x)
-                        //f'(x) 1/(x^2+1)
-
-                        ret->op_m = DIVIDE;
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-                        ret->left_m->right_m = new Expression<T > ();
-
-                        ret->left_m->right_m->op_m = CONSTANT;
-                        ret->left_m->right_m->value_m = T(1.0);
-
-
-                        ret->left_m->left_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = PLUS;
-
-                        ret->right_m->left_m = new Expression<T > ();
-                        ret->right_m->left_m->op_m = MULTIPLY;
-                        ret->right_m->left_m->left_m = this->left_m->Clone();
-                        ret->right_m->left_m->right_m = this->left_m->Clone();
-
-
-                        ret->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->op_m = CONSTANT;
-                        ret->right_m->right_m->value_m = T(1.0);
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-
-                    }
-                case ATAN2:
-                    //if w.r.t. check both expressions for id
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = atan2(x,y)
-                        //f'(x) y/(x^2+y^2)
-
-                        ret->op_m = DIVIDE;
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-                        ret->left_m->left_m = this->right_m->Clone(); //y
-                        ret->left_m->right_m = left_m->Differentiate(id);
-
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = PLUS;
-
-                        ret->right_m->left_m = new Expression<T > ();
-                        ret->right_m->left_m->op_m = MULTIPLY;
-                        ret->right_m->left_m->left_m = this->left_m->Clone();
-                        ret->right_m->left_m->right_m = this->left_m->Clone();
-
-
-                        ret->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->op_m = MULTIPLY;
-                        ret->right_m->right_m->left_m = this->right_m->Clone();
-                        ret->right_m->right_m->right_m = this->right_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case ATAN3:
-
-                    //can be removed.
-                    break;
-
-                case ATAN4:
-                    break;
-                case SQRT:
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = sqrt(x)
-                        //f'(x) = .5/sqrt(x)
-
-                        ret->op_m = DIVIDE;
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-
-                        ret->left_m->right_m = new Expression<T > ();
-                        ret->left_m->right_m->value_m = T(0.5);
-
-                        ret->left_m->left_m = this->left_m->Differentiate(id);
-
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = SQRT;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-                        //std::cout<<ret->ToString();
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case POW:
-
-                    if (this->left_m->HasID(id)) {
-                        //f(x) =  x^y
-                        //f'(x) = yx^y-1
-
-                        ret->op_m = MULTIPLY;
-
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-                        ret->left_m->left_m = this->left_m->Differentiate(id);
-                        ret->left_m->right_m = this->right_m->Clone();
-
-
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = POW;
-
-
-                        ret->right_m->left_m = this->left_m->Clone();
-
-
-                        ret->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->op_m = MINUS;
-                        ret->right_m->right_m->left_m = this->right_m->Clone();
-
-                        ret->right_m->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->right_m->op_m = CONSTANT;
-                        ret->right_m->right_m->right_m->value_m = T(1.0);
-
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                    //                case POW1:
-                    //
-                    //                    break;
-                    //                    //                return pow(this->left_value_, this->right_value_ - T(1.0));
-                    //                case POW2:
-                    //                    break;
-                    //                    //                return pow(this->left_value_, this->right_value_ - T(1.0));
-                case LOG:
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = log(x)
-                        //f'(x) = 1/x
-
-                        ret->op_m = DIVIDE;
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-                        ret->left_m->left_m = new Expression<T > ();
-                        ret->left_m->left_m->op_m = CONSTANT;
-                        ret->left_m->left_m->value_m = T(1.0);
-                        ret->left_m->right_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = this->left_m->Clone();
-
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case LOG10:
-                    //f(x) = log10(x)
-                    //f'(x) = 1/(xlog(10))
-
-                    if (this->left_m->HasID(id)) {
-
-
-
-                        ret->op_m = DIVIDE;
-
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-
-                        ret->left_m->left_m = new Expression<T > ();
-                        ret->left_m->left_m->op_m = CONSTANT;
-                        ret->left_m->left_m->value_m = T(1.0);
-
-                        ret->left_m->right_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = MULTIPLY;
-
-                        ret->right_m->left_m = this->left_m->Clone();
-
-                        ret->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->op_m = CONSTANT;
-                        ret->right_m->right_m->value_m = log(T(10.0));
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = LOG;
-                        ret->left_m = this->Clone();
-
-
-                        return ret;
-                    }
-                case EXP:
-                    //f(x) = e^x
-                    //f'(x) =e^x
-
-                    if (this->left_m->HasID(id)) {
-
-                        ret->op_m = MULTIPLY;
-                        ret->left_m = this->left_m->Differentiate(id);
-
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = EXP;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case SINH:
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = sinh(x)
-                        //f'(x) = cosh(x)
-
-                        ret->op_m = MULTIPLY;
-                        ret->left_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = COSH;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case COSH:
-                    if (this->left_m->HasID(id)) {
-
-                        ret->op_m = MULTIPLY;
-                        ret->left_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = SINH;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case TANH:
-                    //f(x) = tanh(x)
-                    //f'(x) =1- tanh(x)*tanh(x)
-
-
-                    if (this->left_m->HasID(id)) {
-
-                        ret->op_m = MULTIPLY;
-
-                        ret->left_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = MULTIPLY;
-                        ret->right_m->left_m = new Expression<T > ();
-
-
-                        ret->right_m->left_m->op_m = DIVIDE;
-                        ret->right_m->left_m->left_m = new Expression<T > ();
-                        ret->right_m->left_m->left_m->op_m = CONSTANT;
-                        ret->right_m->left_m->left_m->value_m = T(1.0);
-
-
-                        ret->right_m->left_m->right_m = new Expression<T > ();
-                        ret->right_m->left_m->right_m->op_m = COSH;
-                        ret->right_m->left_m->right_m->left_m = this->left_m->Clone();
-
-
-                        ret->right_m->right_m = ret->right_m->left_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-
-                case FABS:
-
-                    if (this->left_m->HasID(id)) {
-
-                        ret->op_m = DIVIDE;
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-
-                        ret->left_m->left_m = this->left_m->Differentiate(id);
-                        ret->left_m->right_m = this->left_m->Clone();
-
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = FABS;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case FLOOR:
-                    if (this->left_m->id_m == id) {
-
-
-
-                        ret->op_m = MULTIPLY;
-
-                        ret->left_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = FLOOR;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case NONE://shouldn't happen.
-                    return this->Clone();
-
-                default:
-                    return NULL;
-            }
-            return NULL;
-        }
-
-
-#define SPEED_UP
-
-#ifdef SPEED_UP
-
-        /**
-         * Returns the evaluated derivative of this expression tree. While the
-         * derivative is computed, no expression tree manipulations are made.
-         * @param id
-         * @return 
-         */
-        T EvaluateDerivative(const uint32_t &id) {
-            //#warning need to check partial derivatives....
-
-            T ret, g, h = T(-999.0);
-
-
-
-            switch (op_m) {
-
-                case CONSTANT:
-                    //f(x) = C
-                    //f'(x) = 0
-
-                    return T(0);
-
-                case VARIABLE:
-                    if (this->id_m == id) {
-                        //f(x) = x
-                        //f'(x) = 1
-
-
-                        return T(1.0);
-                    } else {//constant
-                        //f(x) = C
-                        //f'(x) = 0
-
-                        return T(0.0);
-                    }
-                case MINUS:
-
-                    //f(x) = g(x) - h(x)
-                    //f'(x) = g'(x) - h'(x)
-
-
-                    return this->left_m->EvaluateDerivative(id) - this->right_m->EvaluateDerivative(id);
-
-                case PLUS:
-
-                    //f(x) = g(x) + h(x)
-                    //f'(x) = g'(x) + h'(x)
-
-
-                    return this->left_m->EvaluateDerivative(id) + this->right_m->EvaluateDerivative(id);
-
-
-                case DIVIDE:
-
-                    //f(x) = g(x)/h(x);
-                    //f'(x) = (g'(x)h(x) - g(x)h'(x))/h(x)^2
-
-
-                    ret = (this->left_m->EvaluateDerivative(id) * this->right_m->Evaluate() -
-                            this->left_m->Evaluate() * this->right_m->EvaluateDerivative(id)) /
-                            (this->right_m->Evaluate() * this->right_m->Evaluate());
-
-
-                    return ret;
-
-                case MULTIPLY:
-                    //f(x) = g(x)h(x);
-                    //f'(x) = g'(x)h(x) + g(x)h'(x)
-
-                    if (this->left_m->op_m == CONSTANT
-                            && this->right_m->op_m != CONSTANT) {
-
-                        ret = this->left_m->Evaluate() * this->right_m->EvaluateDerivative(id);
-
-
-                    } else if (this->right_m->op_m == CONSTANT
-                            && this->left_m->op_m != CONSTANT) {
-
-                        ret = this->left_m->EvaluateDerivative(id) * this->right_m->Evaluate();
-                    } else {
-
-                        //g'(x)h(x) + g(x)h'(x)
-
-                        ret = this->left_m->EvaluateDerivative(id) * this->right_m->Evaluate() +
-                                this->left_m->Evaluate() * this->right_m->EvaluateDerivative(id);
-
-
-                    }
-                    return ret;
-
-                case SIN:
-
-                    if (this->left_m->HasID(id)) {
-                        //f'(x) = cos(x)
-                        ret = this->left_m->EvaluateDerivative(id) *
-                                std::cos(this->left_m->Evaluate());
-
-                        return ret;
-                    } else {
-                        return T(0.0);
-                    }
-
-                case COS:
-                    if (this->left_m->HasID(id)) {
-                        //f'(x) = -sin(x)
-
-
-                        g = this->left_m->EvaluateDerivative(id);
-
-                        ret = g * T(-1.0) * std::sin(this->left_m->Evaluate());
-
-                        return ret;
-
-                    } else {
-
-                        return T(0.0);
-                    }
-                case TAN:
-                    if (this->left_m->HasID(id)) {
-                        //f'(x) = 1/cos(x)
-
-
-                        g = this->left_m->EvaluateDerivative(id);
-
-                        ret = g * ((T(1.0) / std::cos(this->left_m->Evaluate()))*(T(1.0) / std::cos(this->left_m->Evaluate())));
-
-
-                        return ret;
-                    } else {
-
-                        return T(0.0);
-                    }
-                case ASIN:
-
-                    if (this->left_m->HasID(id)) {
-
-
-                        //f(x) = asin(x)
-                        //f'(x) = 1/(2 sqrt(1-x^2)= 1/(pow((1-pow(x,2)),0.5)
-
-
-                        g = this->left_m->EvaluateDerivative(id);
-
-                        ret = (g * T(1.0) / std::pow((T(1.0) - std::pow(this->left_m->Evaluate(), T(2.0))), T(0.5)));
-
-                        return ret;
-                    } else {
-                        return T(0.0);
-                    }
-                case ACOS:
-
-                    if (this->left_m->HasID(id)) {
-                        g = this->left_m->EvaluateDerivative(id);
-
-                        ret = (g * T(-1.0) / std::pow((T(1.0) - std::pow(this->left_m->Evaluate(), T(2.0))), T(0.5)));
-
-                        return ret;
-                    } else {
-
-                        return T(0.0);
-                    }
-                case ATAN:
-                    if (this->left_m->HasID(id)) {
-                        g = this->left_m->EvaluateDerivative(id);
-                        ret = (g * T(1.0) / (this->left_m->Evaluate() * this->left_m->Evaluate() + T(1.0)));
-
-                        return ret;
-                    } else {
-                        //                        ret->op_m = CONSTANT;
-                        //                        ret->value_m = T(0.0);
-                        return T(0.0);
-
-                    }
-                case ATAN2:
-                    //if w.r.t. check both expressions for id
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = atan2(x,y)
-                        //f'(x) y/(x^2+y^2)
-
-                        g = this->left_m->EvaluateDerivative(id);
-                        ret = (this->right_m->Evaluate() * g / (this->left_m->Evaluate() * this->left_m->Evaluate()+(this->right_m->Evaluate() * this->right_m->Evaluate())));
-
-                        return ret;
-                    } else {
-
-                        return T(0.0);
-                    }
-                case ATAN3:
-
-                    //can be removed.
-                    break;
-
-                case ATAN4:
-                    break;
-                case SQRT:
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = sqrt(x)
-                        //f'(x) = .5/sqrt(x)
-                        g = this->left_m->EvaluateDerivative(id);
-                        ret = g * T(.5) / std::sqrt(this->left_m->Evaluate());
-
-
-                        return ret;
-                    } else {
-                        return T(0.0);
-                    }
-                case POW:
-
-                    if (this->left_m->HasID(id)) {
-                        //f(x) =  x^y
-                        //f'(x) = yx^y-1
-                        ret = (this->left_m->EvaluateDerivative(id) * this->right_m->Evaluate()) *
-                                std::pow(this->left_m->Evaluate(), (this->right_m->Evaluate() - T(1.0)));
-
-                        return ret;
-                    } else {
-
-                        return T(0.0);
-                    }
-
-                case LOG:
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = log(x)
-                        //f'(x) = 1/x
-                        ret = (this->left_m->EvaluateDerivative(id) * T(1.0)) / this->left_m->Evaluate();
-
-                        return ret;
-                    } else {
-
-                        return T(0.0);
-                    }
-                case LOG10:
-                    //f(x) = log10(x)
-                    //f'(x) = 1/(xlog(10))
-
-                    if (this->left_m->HasID(id)) {
-
-                        ret = (this->left_m->EvaluateDerivative(id) * T(1.0)) / (this->left_m->Evaluate() * std::log(T(10.0)));
-
-                        return ret;
-                    } else {
-                        return T(0.0);
-                    }
-                case EXP:
-                    //f(x) = e^x
-                    //f'(x) =e^x
-
-                    if (this->left_m->HasID(id)) {
-                        ret = this->left_m->EvaluateDerivative(id) * std::exp(this->left_m->Evaluate());
-
-                        return ret;
-                    } else {
-
-                        return T(0.0);
-                    }
-                case SINH:
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = sinh(x)
-                        //f'(x) = cosh(x)
-                        return this->left_m->EvaluateDerivative(id) * std::cosh(this->left_m->Evaluate());
-
-                        return ret;
-                    } else {
-
-                        return T(0.0);
-                    }
-                case COSH:
-                    if (this->left_m->HasID(id)) {
-                        return this->left_m->EvaluateDerivative(id) * std::sinh(this->left_m->Evaluate());
-
-                        return ret;
-                    } else {
-
-                        return ret;
-                    }
-                case TANH:
-                    //f(x) = tanh(x)
-                    //f'(x) =1- tanh(x)*tanh(x)
-
-
-                    if (this->left_m->HasID(id)) {
-
-                        ret = this->left_m->EvaluateDerivative(id)*(T(1.0) / std::cosh(this->left_m->Evaluate()))*(T(1.0) / std::cosh(this->left_m->Evaluate()));
-
-
-                        return ret;
-                    } else {
-
-                        return T(0.0);
-                    }
-
-                case FABS:
-
-                    if (this->left_m->HasID(id)) {
-
-                        ret = (this->left_m->EvaluateDerivative(id) * this->left_m->Evaluate()) /
-                                std::fabs(this->left_m->Evaluate());
-
-                        return ret;
-                    } else {
-
-                        return T(0.0);
-                    }
-                case FLOOR:
-                    if (this->left_m->id_m == id) {
-
-                        ret = this->left_m->EvaluateDerivative(id) * std::floor(this->left_m->Evaluate());
-
-                        return ret;
-                    } else {
-
-                        return ret;
-                    }
-                case NONE://shouldn't happen.
-                    return ret;
-
-                default:
-                    return ret;
-            }
-            return NULL;
-        }
-
-        T FindValue(const uint32_t &id) {
-
-            if (this->id_m == id) {
-                return this->value_m;
-                ;
-            }
-            if (this->left_m) {
-                if (this->left_m->HasID(id)) {
-                    return this->left_m->FindValue(id);
-                }
-            }
-
-            if (this->right_m) {
-                if (this->right_m->HasID(id)) {
-                    return this->left_m->FindValue(id);
-                }
-            }
-
-            return T(0);
-        }
-#endif
-
-        /*!
-         * Builds a expression tree representing the integral with respect to 
-         * some ADNumber via its id.(reverse mode) 
-         * 
-         * @return Expression<T>
-         */
-        Expression<T>* Integral(const uint32_t &id) {
-            //#warning need to check partial derivatives....
-
-            Expression<T>* ret = new Expression<T > ();
-
-
-            switch (op_m) {
-
-                case CONSTANT:
-
-
-                    ret->op_m = MULTIPLY;
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = CONSTANT;
-                    ret->left_m->value_m = this->value_m;
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->id_m = id;
-                    ret->right_m->value_m = this->FindValue(id);
-
-
-                    return ret;
-
-                case VARIABLE:
-                    if (this->id_m == id) {
-
-
-                        ret->op_m = DIVIDE;
-                        ret->left_m = new Expression<T > ();
-                        ret->right_m = new Expression<T > ();
-
-                        ret->left_m->op_m = MULTIPLY;
-                        ret->left_m->left_m = this->Clone();
-                        ret->left_m->right_m = this->Clone();
-
-                        ret->right_m->op_m = CONSTANT;
-                        ret->right_m->value_m = T(2);
-
-
-                        return ret;
-                    } else {//constant
-                        //f(x) = C
-                        //f'(x) = 0
-                        ret->op_m = MULTIPLY;
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = VARIABLE;
-                        ret->left_m->id_m = id;
-                        ret->left_m->value_m = this->FindValue(id);
-
-                        ret->right_m = this->Clone();
-
-                        return ret;
-                    }
-                case MINUS:
-
-                    //f(x) = g(x) - h(x)
-                    //f'(x) = g'(x) - h'(x)
-
-                    ret->op_m = MINUS;
-                    if (this->left_m) {
-                        ret->left_m = this->left_m->Integral(id);
-
-                    }
-
-                    if (this->right_m) {
-                        ret->right_m = this->right_m->Integral(id);
-                    }
-
-                    return ret;
-
-                case PLUS:
-
-                    //f(x) = g(x) + h(x)
-                    //f'(x) = g'(x) + h'(x)
-
-                    ret->op_m = PLUS;
-                    if (this->left_m) {
-                        ret->left_m = this->left_m->Integral(id);
-                    }
-
-                    if (this->right_m) {
-                        ret->right_m = this->right_m->Integral(id);
-                    }
-
-
-                    return ret;
-
-                case DIVIDE:
-
-                    ret->op_m = DIVIDE;
-                    if (this->left_m) {
-                        ret->left_m = this->left_m->Integral(id);
-                    }
-
-                    if (this->right_m) {
-                        ret->right_m = this->right_m->Integral(id);
-                    }
-
-
-                    return ret;
-
-                case MULTIPLY:
-                    ret->op_m = MULTIPLY;
-                    if (this->left_m) {
-                        ret->left_m = this->left_m->Integral(id);
-                    }
-
-                    if (this->right_m) {
-                        ret->right_m = this->right_m->Integral(id);
-                    }
-
-
-                    return ret;
-
-                case SIN:
-
-                    ret->op_m = MULTIPLY;
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = CONSTANT;
-                    ret->left_m->value_m = T(-1);
-
-                    ret->right_m = this->Clone();
-                    ret->right_m->op_m = COS;
-
-                    return ret;
-
-
-
-                case COS:
-
-                    ret = this->Clone();
-                    ret->op_m = SIN;
-                    return ret;
-
-                case TAN:
-
-                    ret->op_m = LOG;
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->left_m = new Expression<T > ();
-                    ret->left_m->left_m->op_m = CONSTANT;
-                    ret->left_m->left_m->value_m = T(1);
-
-                    ret->left_m->right_m = this->Clone();
-                    ret->left_m->right_m->op_m = COS;
-
-                    return ret;
-
-                case ASIN:
-
-                    ret->op_m = PLUS;
-
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = MULTIPLY;
-                    ret->left_m->left_m = this->left_m->Clone();
-                    ret->left_m->right_m = new Expression<T > ();
-                    ret->left_m->right_m->op_m = ASIN;
-                    ret->left_m->right_m->left_m = this->left_m->Clone();
-
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = SQRT;
-                    ret->right_m->left_m = new Expression<T > ();
-                    ret->right_m->left_m->op_m = PLUS;
-                    ret->right_m->left_m->left_m = new Expression<T > ();
-                    ret->right_m->left_m->left_m->op_m = CONSTANT;
-                    ret->right_m->left_m->left_m->value_m = T(1);
-
-
-                    ret->right_m->left_m->right_m = new Expression<T > ();
-                    ret->right_m->left_m->right_m->op_m = MULTIPLY;
-                    ret->right_m->left_m->right_m->left_m = this->left_m->Clone();
-                    ret->right_m->left_m->right_m->right_m = this->left_m->Clone();
-
-
-
-                    return ret;
-
-                case ACOS:
-
-                    ret->op_m = MINUS;
-
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = MULTIPLY;
-                    ret->left_m->left_m = this->left_m->Clone();
-                    ret->left_m->right_m = new Expression<T > ();
-                    ret->left_m->right_m->op_m = ACOS;
-                    ret->left_m->right_m->left_m = this->left_m->Clone();
-
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = SQRT;
-                    ret->right_m->left_m = new Expression<T > ();
-                    ret->right_m->left_m->op_m = MINUS;
-                    ret->right_m->left_m->left_m = new Expression<T > ();
-                    ret->right_m->left_m->left_m->op_m = CONSTANT;
-                    ret->right_m->left_m->left_m->value_m = T(1);
-
-
-                    ret->right_m->left_m->right_m = new Expression<T > ();
-                    ret->right_m->left_m->right_m->op_m = MULTIPLY;
-                    ret->right_m->left_m->right_m->left_m = this->left_m->Clone();
-                    ret->right_m->left_m->right_m->right_m = this->left_m->Clone();
-
-
-
-                    return ret;
-                case ATAN:
-                    ret->op_m = MINUS;
-
-                    ret->left_m = new Expression<T > ();
-                    ret->left_m->op_m = MULTIPLY;
-                    ret->left_m->left_m = this->left_m->Clone();
-                    ret->left_m->right_m = new Expression<T > ();
-                    ret->left_m->right_m->op_m = ATAN;
-                    ret->left_m->right_m->left_m = this->left_m->Clone();
-
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = MULTIPLY;
-                    ret->right_m->left_m = new Expression<T > ();
-                    ret->right_m->left_m->value_m = T(.5);
-                    ret->right_m->right_m = new Expression<T > ();
-                    ret->right_m->right_m->op_m = LOG;
-                    ret->right_m->right_m->left_m = new Expression<T > ();
-                    ret->right_m->right_m->left_m->op_m = PLUS;
-                    ret->right_m->right_m->left_m->left_m = new Expression<T > ();
-                    ret->right_m->right_m->left_m->left_m->op_m = CONSTANT;
-                    ret->right_m->right_m->left_m->left_m->value_m = T(1);
-                    ret->right_m->right_m->left_m->right_m = new Expression<T > ();
-                    ret->right_m->right_m->left_m->right_m->op_m = MULTIPLY;
-                    ret->right_m->right_m->left_m->right_m->left_m = this->left_m->Clone();
-                    ret->right_m->right_m->left_m->right_m->right_m = this->left_m->Clone();
-
-                    return ret;
-
-                case ATAN2:
-
-                    std::cout << "Error, still haven't implemented integral of atan2!\n";
-                    exit(0);
-                case ATAN3:
-
-                    //can be removed.
-                    break;
-
-                case ATAN4:
-                    break;
-                case SQRT:
-
-                    ret->op_m = MULTIPLY;
-                    ret->left_m = new Expression<T > ();
-
-                    ret->left_m->op_m = DIVIDE;
-                    ret->left_m->left_m = new Expression<T > ();
-                    ret->left_m->left_m->op_m = CONSTANT;
-                    ret->left_m->left_m->value_m = T(2);
-                    ret->left_m->right_m = new Expression<T > ();
-                    ret->left_m->right_m->op_m = CONSTANT;
-                    ret->left_m->right_m->value_m = T(3);
-
-                    ret->right_m = new Expression<T > ();
-                    ret->right_m->op_m = POW;
-                    ret->right_m->left_m = this->Clone();
-                    ret->right_m->right_m = ret->left_m->Clone();
-
-                    return ret;
-
-                case POW:
-
-
-                    ret->op_m = DIVIDE;
-                    ret->left_m = new Expression<T > ();
-
-                    ret->left_m->op_m = POW;
-                    ret->left_m->left_m = this->left_m->Clone();
-                    ret->left_m->right_m = new Expression<T > ();
-
-                    ret->left_m->right_m->op_m = PLUS;
-                    ret->left_m->right_m->left_m = this->right_m->Clone();
-                    ret->left_m->right_m->right_m = new Expression<T > ();
-                    ret->left_m->right_m->right_m->op_m = CONSTANT;
-                    ret->left_m->right_m->right_m->value_m = T(1);
-
-
-                    ret->right_m = ret->left_m->right_m->Clone();
-
-
-                    return ret;
-                    //                case POW1:
-                    //
-                    //                    break;
-                    //                    //                return pow(this->left_value_, this->right_value_ - T(1.0));
-                    //                case POW2:
-                    //                    break;
-                    //                    //                return pow(this->left_value_, this->right_value_ - T(1.0));
-                case LOG:
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = log(x)
-                        //f'(x) = 1/x
-
-                        ret->op_m = DIVIDE;
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-                        ret->left_m->left_m = new Expression<T > ();
-                        ret->left_m->left_m->op_m = CONSTANT;
-                        ret->left_m->left_m->value_m = T(1.0);
-                        ret->left_m->right_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = this->left_m->Clone();
-
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case LOG10:
-                    //f(x) = log10(x)
-                    //f'(x) = 1/(xlog(10))
-
-                    if (this->left_m->HasID(id)) {
-
-
-
-                        ret->op_m = DIVIDE;
-
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-
-                        ret->left_m->left_m = new Expression<T > ();
-                        ret->left_m->left_m->op_m = CONSTANT;
-                        ret->left_m->left_m->value_m = T(1.0);
-
-                        ret->left_m->right_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = MULTIPLY;
-
-                        ret->right_m->left_m = this->left_m->Clone();
-
-                        ret->right_m->right_m = new Expression<T > ();
-                        ret->right_m->right_m->op_m = CONSTANT;
-                        ret->right_m->right_m->value_m = log(T(10.0));
-
-                        return ret;
-                    } else {
-                        ret->op_m = LOG;
-                        ret->left_m = this->Clone();
-
-
-                        return ret;
-                    }
-                case EXP:
-                    //f(x) = e^x
-                    //f'(x) =e^x
-
-                    if (this->left_m->HasID(id)) {
-
-                        ret->op_m = MULTIPLY;
-                        ret->left_m = this->left_m->Differentiate(id);
-
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = EXP;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case SINH:
-                    if (this->left_m->HasID(id)) {
-                        //f(x) = sinh(x)
-                        //f'(x) = cosh(x)
-
-                        ret->op_m = MULTIPLY;
-                        ret->left_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = COSH;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case COSH:
-                    if (this->left_m->HasID(id)) {
-
-                        ret->op_m = MULTIPLY;
-                        ret->left_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = SINH;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case TANH:
-                    //f(x) = tanh(x)
-                    //f'(x) =1- tanh(x)*tanh(x)
-
-
-                    if (this->left_m->HasID(id)) {
-
-                        ret->op_m = MULTIPLY;
-
-                        ret->left_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = MULTIPLY;
-                        ret->right_m->left_m = new Expression<T > ();
-
-
-                        ret->right_m->left_m->op_m = DIVIDE;
-                        ret->right_m->left_m->left_m = new Expression<T > ();
-                        ret->right_m->left_m->left_m->op_m = CONSTANT;
-                        ret->right_m->left_m->left_m->value_m = T(1.0);
-
-
-                        ret->right_m->left_m->right_m = new Expression<T > ();
-                        ret->right_m->left_m->right_m->op_m = COSH;
-                        ret->right_m->left_m->right_m->left_m = this->left_m->Clone();
-
-
-                        ret->right_m->right_m = ret->right_m->left_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-
-                case FABS:
-
-                    if (this->left_m->HasID(id)) {
-
-                        ret->op_m = DIVIDE;
-                        ret->left_m = new Expression<T > ();
-                        ret->left_m->op_m = MULTIPLY;
-
-                        ret->left_m->left_m = this->left_m->Differentiate(id);
-                        ret->left_m->right_m = this->left_m->Clone();
-
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = FABS;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case FLOOR:
-                    if (this->left_m->id_m == id) {
-
-
-
-                        ret->op_m = MULTIPLY;
-
-                        ret->left_m = this->left_m->Differentiate(id);
-
-                        ret->right_m = new Expression<T > ();
-                        ret->right_m->op_m = FLOOR;
-                        ret->right_m->left_m = this->left_m->Clone();
-
-
-                        return ret;
-                    } else {
-                        ret->op_m = CONSTANT;
-                        ret->value_m = T(0.0);
-
-
-                        return ret;
-                    }
-                case NONE://shouldn't happen.
-                    return this->Clone();
-
-                default:
-                    return NULL;
-            }
-            return NULL;
-        }
-
-        /*!
-         * Solves an expression with respect to some 
-         * ADNumber via its id.
-         *
-         */
-        void Solve(const uint32_t &id) {
+            left_m = left;
 
         }
 
-        /*!
-         * Return a list of differentiable ids in this
-         * expression.
-         * 
-         * @param vars
-         */
-        void VariableIds(std::vector< uint32_t> &vars) {
+        const std::string GetName() const {
+            if (name_m == "") {
+                std::stringstream ss;
+                ss << "x" << GetId();
+                return ss.str();
+            }
+            return name_m;
+        }
 
-            if (this->left_m != NULL) {
-                this->left_m->VariableIds(vars);
+        void SetName(const std::string &name) {
+            name_m = name;
+        }
+
+        const Operation GetOp() const {
+            return op_m;
+        }
+
+        void SetOp(const Operation &op) {
+            op_m = op;
+        }
+
+        ExpressionPtr GetRight() const {
+            return right_m;
+        }
+
+        void SetRight(ExpressionPtr right) {
+            if (GetRight() != NULL) {
+                GetRight()->release();
             }
 
-
-            if (this->right_m != NULL) {
-                this->right_m->VariableIds(vars);
+            if (right != NULL) {
+                right->take();
             }
 
-            if (this->op_m == VARIABLE) {
-                bool exists = false;
-                for (size_t i = 0; i < vars.size(); i++) {
-                    if (vars.at(i) == this->id_m) {
-                        exists = true;
-                    }
-                }
+            right_m = right;
 
-                if (!exists) {
-                    vars.push_back(this->id_m);
-                }
-            }
+        }
 
+        const T GetValue() const {
+            return value_m;
+        }
+
+        void SetValue(T value) {
+            value_m = value;
         }
 
         /*!
          * Represent this expression as a string. ADNumbers are represented
-         * in wkt format by value and id. Constants are represented by value.
+         * in wkt format by default unless latex flag is set to true.
+         * Constants are represented by value.
          *
          */
-        std::string ToString(std::vector<std::string> &vars) {
+        std::string ToString(bool latex = false) {
+
+            //            if (Size() > 1000) {
+            //                return std::string("Error: ToString...expression too long.");
+            //            }
+            //
             std::stringstream ss;
             std::stringstream temp;
 
             std::string l, r;
-            bool exists = false;
-            std::stringstream temps;
 
-            if (this->left_m != NULL) {
-                l = this->left_m->ToString(vars);
+
+
+            if (GetRight() != NULL) {
+                r = GetRight()->ToString(latex);
             }
+
+            if (GetLeft() != NULL) {
+                l = GetLeft()->ToString(latex);
+            }
+
+
             temp.str("");
 
-            if (this->right_m != NULL) {
-                r = this->right_m->ToString(vars);
-            }
-            ss << "(";
 
-            switch (this->op_m) {
+
+            switch (GetOp()) {
                 case CONSTANT:
-                    ss << this->value_m << "";
+                    if (latex) {
+                        ss << GetValue();
+                    } else {
+                        ss << "CONST[" << GetValue() << "]";
+                    }
                     break;
                 case VARIABLE:
-                    ss << "x" << this->id_m;
-
-
-                    temps << "x" << this->id_m << "/*" << this->value_m << "*/";
-
-                    for (size_t i = 0; i < vars.size(); i++) {
-                        if (vars.at(i) == temps.str()) {
-                            exists = true;
+                    if (latex) {
+                        if (GetName() == "") {
+                            ss << "x" << GetId();
+                        } else {
+                            ss << GetName();
                         }
+                    } else {
+                        ss << "VAR[" << GetValue() << ",ID[" << GetId() << "]" << "]";
                     }
-
-                    if (!exists) {
-                        vars.push_back(temps.str());
-                    }
-
                     break;
                 case MINUS:
-                    ss << l << " - " << r;
+                    ss << "(" << l << " - " << r << ")";
                     break;
                 case PLUS:
-                    ss << l << " + " << r;
+                    ss << "(" << l << " + " << r << ")";
                     break;
                 case DIVIDE:
-                    ss << l << " / " << r;
+                    if (latex) {
+                        ss << "\\frac{" << l << "}{" << r << "}";
+                    } else {
+                        ss << l << " / " << r;
+                    }
                     break;
                 case MULTIPLY:
-                    ss << l << " * " << r;
+
+                    if (latex && GetRight()->GetOp() == POW
+                            && GetRight()->GetRight()->GetOp() == CONSTANT
+                            && GetRight()->GetRight()->GetValue() == T(-1)) {
+                        ss << "\\frac{" << l << "}{" << GetRight()->GetLeft()->ToString(latex) << "}";
+                    } else {
+
+                        ss << "(" << l << " * " << r << ")";
+                    }
                     break;
                 case SIN:
                     ss << "sin(" << l << ")";
@@ -2907,165 +646,23 @@ namespace ad {
                     ss << "sqrt(" << l << ")";
                     break;
                 case POW:
-                    ss << "pow(" << l << "," << r << ")";
-                    break;
+
+
                 case POW1:
-                    ss << "pow(" << l << "," << r << ")";
-                    break;
+
                 case POW2:
-                    ss << "pow(" << l << "," << r << ")";
+                    if (latex) {
+                        ss << l << "^{" << r << "}";
+                    } else {
+                        ss << "pow(" << l << "," << r << ")";
+                    }
                     break;
                 case LOG:
-                    ss << "log(" << l << ")";
-                    break;
-                case LOG10:
-                    ss << "log10(" << l << ")";
-                    break;
-                case EXP:
-                    ss << "exp(" << l << ")";
-                    break;
-                case SINH:
-                    ss << "sinh(" << l << ")";
-                    break;
-                case COSH:
-                    ss << "cosh(" << l << ")";
-                    break;
-                case TANH:
-                    ss << "tanh(" << l << ")";
-                    break;
-                case ABS:
-                    ss << "abs(" << l << ")";
-                case NONE:
-                    break;
-                default:
-                    break;
-            }
-
-            ss << ")";
-
-            return ss.str();
-
-        }
-
-        /*!
-         * Represent this expression as a string. ADNumbers are represented
-         * in wkt format by value and id. Constants are represented by value.
-         *
-         */
-        std::string ToString(MODE mode = REVERSE) {
-            std::stringstream ss;
-            std::stringstream temp;
-
-            std::string l, r;
-
-            switch (mode) {
-                case FORWARD:
-
-                    if (this->left_m != NULL) {
-                        l = this->left_m->ToString(mode);
+                    if (latex) {
+                        ss << "ln(" << l << ")";
+                    } else {
+                        ss << "log(" << l << ")";
                     }
-
-
-                    if (this->right_m != NULL) {
-                        r = this->right_m->ToString(mode);
-                    }
-
-
-                    break;
-                case REVERSE:
-
-                    if (this->right_m != NULL) {
-                        r = this->right_m->ToString(mode);
-                    }
-
-                    if (this->left_m != NULL) {
-                        l = this->left_m->ToString(mode);
-                    }
-
-                    break;
-
-                default:
-                    if (this->right_m != NULL) {
-                        r = this->right_m->ToString(mode);
-                    }
-
-                    if (this->left_m != NULL) {
-                        l = this->left_m->ToString(mode);
-                    }
-
-                    break;
-
-            }
-            //            if (this->left_m != NULL) {
-            //                l = this->left_m->ToString();
-            //            }
-            temp.str("");
-
-            //            if (this->right_m != NULL) {
-            //                r = this->right_m->ToString();
-            //            }
-            ss << "(";
-
-            switch (this->op_m) {
-                case CONSTANT:
-                    ss << "CONST[" << this->value_m << "]";
-                    break;
-                case VARIABLE:
-                    ss << "VAR[" << this->value_m << ",ID[" << this->id_m << "]" << "]";
-                    break;
-                case MINUS:
-                    ss << l << " - " << r;
-                    break;
-                case PLUS:
-                    ss << l << " + " << r;
-                    break;
-                case DIVIDE:
-                    ss << l << " / " << r;
-                    break;
-                case MULTIPLY:
-                    ss << l << " * " << r;
-                    break;
-                case SIN:
-                    ss << "sin(" << l << ")";
-                    break;
-                case COS:
-                    ss << "cos(" << l << ")";
-                    break;
-                case TAN:
-                    ss << "tan(" << l << ")";
-                    break;
-                case ASIN:
-                    ss << "asin(" << l << ")";
-                    break;
-                case ACOS:
-                    ss << "acos(" << l << ")";
-                    break;
-                case ATAN:
-                    ss << "atan(" << l << ")";
-                    break;
-                case ATAN2:
-                    ss << "atan(" << l << "," << r << ")";
-                    break;
-                case ATAN3:
-                    ss << "atan(" << l << "," << r << ")";
-                    break;
-                case ATAN4:
-                    ss << "atan(" << l << "," << r << ")";
-                    break;
-                case SQRT:
-                    ss << "sqrt(" << l << ")";
-                    break;
-                case POW:
-                    ss << "pow(" << l << "," << r << ")";
-                    break;
-                case POW1:
-                    ss << "pow(" << l << "," << r << ")";
-                    break;
-                case POW2:
-                    ss << "pow(" << l << "," << r << ")";
-                    break;
-                case LOG:
-                    ss << "log(" << l << ")";
                     break;
                 case LOG10:
                     ss << "log10(" << l << ")";
@@ -3092,318 +689,1599 @@ namespace ad {
                     break;
             }
 
-            ss << ")";
+            //ss << ")";
 
             return ss.str();
 
         }
 
-        /*!
-         * Represent this expression as a string. ADNumbers are represented
-         * in wkt format by value and id. Constants are represented by value.
-         *
-         */
-        std::string ToLatexString(bool tree = false, bool start = true) {
-            std::stringstream ss;
-            std::stringstream temp;
+        bool HasId(const unsigned long &id) {
 
-            std::string l, r;
+            //            InOrderIterator<T> it(this);
+            //            Expression<T>* exp;
+            //            while (it) {
+            //                exp = it;
+            //                if (exp->GetId() == id) {
+            //                    return true;
+            //                }
+            //                it++;
+            //            }
 
+            ExpressionPtr n = this;
+            // std::vector<Expression<T>* > vect(1000);
+            ExpressionStack stack;
+            //Stack<ExpressionPtr > stack(100);
+            // begin infix traversal
+            // First iteration will never have a NULL root node
+            // So it will be impossible to ever pop from an empty stack
 
-            if (this->left_m != NULL) {
-                l = this->left_m->ToLatexString(tree, false);
-            }
-            temp.str("");
+            do {
+                if (n == NULL) {
+                    // No right sub tree from previous iteration
+                    // Continue processing the stack
+                    n = stack.top();
+                    stack.pop();
+                } else {
+                    // There exists a right sub tree from previous iteration
+                    while (n->GetLeft() != NULL) {
+                        stack.push(n);
+                        n = n->GetLeft();
+                    }
+                }
 
-            if (this->right_m != NULL) {
-                r = this->right_m->ToLatexString(tree, false);
-            }
+                if (n->GetId() == id) {
+                    return true;
+                }
 
-            if (start && !tree) {
-                ss << "\\f$ \nf = ";
-            } else if (tree && start) {
-                ss << "\\begin{tree}\n";
-            }
+                // Check for a right sub tree
+                n = n->GetRight();
 
-            if (tree) {
-                ss << "\\node{";
-            }
+            } while (!stack.empty() || n != NULL);
 
+            return false;
+        }
 
-            switch (this->op_m) {
-                case CONSTANT:
-                    ss << "" << this->value_m << "";
-                    break;
-                case VARIABLE:
-                    //ss << "VAR[" << this->value_ << ",ID[" << this->id_ << "]" << "]";
-                    ss << "x_" << this->id_m;
-                    break;
-                case MINUS:
-                    ss << "" << l << " - " << r;
-                    break;
-                case PLUS:
-                    ss << l << " + " << r;
-                    break;
-                case DIVIDE:
-                    ss << "\\frac{" << l << "}{" << r << "}";
-                    break;
-                case MULTIPLY:
-                    ss << l << " * " << r;
-                    break;
-                case SIN:
-                    ss << "sin(" << l << ")";
-                    break;
-                case COS:
-                    ss << "cos(" << l << ")";
-                    break;
-                case TAN:
-                    ss << "tan(" << l << ")";
-                    break;
-                case ASIN:
-                    ss << "asin(" << l << ")";
-                    break;
-                case ACOS:
-                    ss << "acos(" << l << ")";
-                    break;
-                case ATAN:
-                    ss << "atan(" << l << ")";
-                    break;
-                case ATAN2:
-                    ss << "atan(" << l << "," << r << ")";
-                    break;
-                case ATAN3:
-                    ss << "atan(" << l << "," << r << ")";
-                    break;
-                case ATAN4:
-                    ss << "atan(" << l << "," << r << ")";
-                    break;
-                case SQRT:
-                    ss << "sqrt(" << l << ")";
-                    break;
-                case POW:
-                    ss << "pow(" << l << "," << r << ")";
-                    break;
-                case POW1:
-                    ss << "pow(" << l << "," << r << ")";
-                    break;
-                case POW2:
-                    ss << "pow(" << l << "," << r << ")";
-                    break;
-                case LOG:
-                    ss << "log(" << l << ")";
-                    break;
-                case LOG10:
-                    ss << "log10(" << l << ")";
-                    break;
-                case EXP:
-                    ss << "exp(" << l << ")";
-                    break;
-                case SINH:
-                    ss << "sinh(" << l << ")";
-                    break;
-                case COSH:
-                    ss << "cosh(" << l << ")";
-                    break;
-                case TANH:
-                    ss << "tanh(" << l << ")";
-                    break;
-                case FABS:
-                    ss << "fabs(" << l << ")";
-                case NONE:
-                    break;
-                default:
-                    break;
-            }
+        void Update(const unsigned long &id, const T &value) {
 
-            if (start && !tree) {
-                ss << "\n\\f$";
-            } else if (tree && start) {
-                ss << "\n\\end{tree}";
-            }
+            //            InOrderIterator<T> it(this);
+            //            Expression<T>* exp;
+            //            while (it) {
+            //                exp = it;
+            //                if (exp->GetId() == id) {
+            //                    return true;
+            //                }
+            //                it++;
+            //            }
 
+            ExpressionPtr n = this;
+            // std::vector<Expression<T>* > vect(1000);
+            ExpressionStack stack;
+            //Stack<ExpressionPtr > stack(100);
+            // begin infix traversal
+            // First iteration will never have a NULL root node
+            // So it will be impossible to ever pop from an empty stack
 
-            return ss.str();
+            do {
+                if (n == NULL) {
+                    // No right sub tree from previous iteration
+                    // Continue processing the stack
+                    n = stack.top();
+                    stack.pop();
+                } else {
+                    // There exists a right sub tree from previous iteration
+                    while (n->GetLeft() != NULL) {
+                        stack.push(n);
+                        n = n->GetLeft();
+                    }
+                }
+
+                if (n->GetId() == id) {
+                    n->SetValue(value);
+                }
+
+                // Check for a right sub tree
+                n = n->GetRight();
+
+            } while (!stack.empty() || n != NULL);
+
 
         }
 
-        /*!
-         * Returns the unique identifier associated with this 
-         * expression.
-         */
-        unsigned long GetId() const {
-
-            return id_m;
-        }
-
-        /*!
-         * Set the unique identifier associated with this expression.
-         * @param id
-         */
-        void SetId(unsigned long id) {
-
-            this->id_m = id;
-        }
-
-        /*!
-         * Returns the left branch of this expression tree.
-         * @return 
-         */
-        Expression<T>* GetLeft() const {
-
-            return left_m;
-        }
-
-        /*!
-         * Sets the left branch of this expression tree.
-         *
-         */
-        void SetLeft(Expression<T> *left) {
-
-            this->left_m = left;
-        }
-
-        /*!
-         * Return the operator for this expression.
-         * @return 
-         */
-        Operation GetOp() const {
-
-            return op_m;
-        }
-
-        /*!
-         * Set the operator for this expression.
-         * 
-         */
-        void SetOp(const Operation &op) {
-
-            this->op_m = op;
-        }
-
-        /*!
-         * Returns the right branch of this expression tree.
-         * @return 
-         */
-        Expression<T>* GetRight() const {
-
-            return right_m;
-        }
-
-        /*!
-         * Sets the right branch of this expression tree.
-         * 
-         */
-        void SetRight(Expression<T> *right) {
-
-            this->right_m = right;
-        }
-
-        /*!
-         * Returns the value assigned to this 
-         * expression.
-         * @return 
-         */
-        T GetValue() const {
-
-            return value_m;
-        }
-
-        /*!
-         * Sets the value assigned to this 
-         * expression.
-         * 
-         */
-        void SetValue(T value) {
-            this->value_m = value;
-        }
 
 
 
     private:
-        T epsilon_m;
-        Expression<T>* left_m; //left branch
-        Expression<T>* right_m; //right branch
-        T value_m; //raw value
-        unsigned int id_m; //unique id
-        Operation op_m; //operation
 
-        size_t Size(Expression* exp) {
-            size_t count = 0;
-            if (exp != NULL) {
-                count = 1 + Size(exp->left_m) + Size(exp->right_m);
-            }
-            return count;
-        }
 
 
 
     };
 
-    /*!
-     * class ADNumber. 
+    template<class T>
+    static ExpressionPtr Clone(ExpressionPtr exp) {
+        //  Lock l(mutex);
+
+
+        std::vector<Expression<T>* > vect;
+        ExpressionStack queue;
+        queue.push(exp);
+        Expression<T>* n;
+
+        std::stack<Expression<T>* > q2;
+        Expression<T>* fresh;
+        //(T value, unsigned long id, std::string name, Operation op, ExpressionPtr left, ExpressionPtr right)
+        Expression<T>* root2 = NEW_EXPRESSION(T) (exp->GetValue(), exp->GetId(), exp->GetName(), exp->GetOp(), NULL, NULL);
+
+        q2.push(root2);
+
+        while (!queue.empty()) {
+            n = queue.top();
+            queue.pop();
+
+            fresh = q2.top();
+            q2.pop();
+            if (n->GetLeft() != NULL) {
+                queue.push(n->GetLeft());
+                Expression<T>* exp = NEW_EXPRESSION(T) ();
+
+                exp->SetId(n->GetLeft()->GetId());
+                exp->SetName(n->GetLeft()->GetName());
+                exp->SetOp(n->GetLeft()->GetOp());
+                exp->SetValue(n->GetLeft()->GetValue());
+                fresh->SetLeft(exp);
+                q2.push(fresh->GetLeft());
+            }
+            if (n->GetRight() != NULL) {
+                queue.push(n->GetRight());
+                Expression<T>* exp = NEW_EXPRESSION(T) ();
+
+                exp->SetId(n->GetRight()->GetId());
+                exp->SetName(n->GetRight()->GetName());
+                exp->SetOp(n->GetRight()->GetOp());
+                exp->SetValue(n->GetRight()->GetValue());
+                fresh->SetRight(exp);
+                q2.push(fresh->GetRight());
+            }
+        }
+
+        return root2;
+    }
+
+    template<class T>
+    class ExpresionIterator {
+    protected:
+
+
+        //typename std::stack<Expression<T>*, std::vector<ad::Expression<T>* > > stack_m;
+
+        ExpressionStack stack_m;
+        Expression<T>* root;
+        virtual int Intitialize() = 0;
+    public:
+
+        ExpresionIterator() : root(NULL) {
+
+        }
+
+        ExpresionIterator(Expression<T>* exp) : root(exp) {
+
+        }
+
+        ExpresionIterator(const ExpresionIterator& it) {
+        }
+
+
+
+        virtual int operator !() = 0;
+
+        operator int() {
+            return !stack_m.empty();
+        }
+
+        //            operator ExpressionPtr() {
+        //                return stack_m.top();
+        //            }
+
+
+        virtual const int operator ++(int) = 0;
+
+    };
+
+    template<class T>
+    class InOrderIterator : protected ExpresionIterator<T> {
+    public:
+
+        operator int() {
+            return !this->stack_m.empty();
+        }
+
+        operator Expression<T>*() {
+            return this->stack_m.top();
+        }
+
+        InOrderIterator(Expression<T>* exp) : ExpresionIterator<T>(exp) {
+            Intitialize();
+        }
+
+        InOrderIterator(const ExpresionIterator<T>& it) {
+        }
+
+        virtual const int operator++(int) {
+
+            if (!this->stack_m.empty()) {
+                Expression<T> * n = this->stack_m.top();
+                this->stack_m.pop();
+                Expression<T> * next = n->GetRight();
+
+                if (next)
+                    LeftSide(next);
+            }
+
+            return !this->stack_m.empty();
+        }
+
+        virtual int operator !() {
+            return !this->stack_m.empty();
+        }
+
+
+
+
+    protected:
+
+        virtual int Intitialize() {
+            while (!this->stack_m.empty()) {
+                this->stack_m.pop();
+            }
+            LeftSide(this->root);
+            return !this->stack_m.empty();
+        }
+
+
+    private:
+
+        void LeftSide(Expression<T>* exp) {
+            while (exp) {
+                this->stack_m.push(exp);
+                exp = exp->GetLeft();
+            }
+        }
+
+    };
+
+    template<class T>
+    class PreOrderIterator : protected ExpresionIterator<T> {
+
+        PreOrderIterator(Expression<T>* exp) : ExpresionIterator<T>(exp) {
+            this->stack_m.push(exp);
+        }
+
+        PreOrderIterator(const ExpresionIterator<T>& it) {
+        }
+
+        operator int() {
+            return !this->stack_m.empty();
+        }
+
+        operator ad::Expression<T>*() {
+            return currNode;
+        }
+
+        virtual int operator !() {
+            return !this->stack_m.empty();
+        }
+
+        virtual const int operator++(int) {
+            Next();
+            return !this->stack_m.empty();
+        }
+
+    private:
+        Expression<T>* n;
+        Expression<T>* prevNode;
+        Expression<T>* currNode;
+
+        inline void Next() {
+            if (this->stack_m.empty()) {
+
+                return;
+            }
+
+            currNode = this->stack_m.top();
+            this->stack_m.pop();
+
+            if (currNode->GetRight() != NULL) {
+                this->stack_m.push(currNode->GetRight());
+            }
+
+            if (currNode->GetLeft() != NULL) {
+                this->stack_m.push(currNode->GetLeft());
+            }
+
+
+
+
+
+        }
+
+    };
+
+    template<class T>
+    class PostOrderIterator : protected ExpresionIterator <T> {
+    public:
+
+        PostOrderIterator(Expression<T>* exp) : ExpresionIterator<T>(exp) {
+            Intitialize();
+        }
+
+        PostOrderIterator(const ExpresionIterator<T>& it) {
+        }
+
+        operator int() {
+            return has_more;
+        }
+
+        operator ad::Expression<T>*() {
+            return currNode;
+        }
+
+        virtual int operator !() {
+            return !this->stack_m.empty();
+        }
+
+        virtual const int operator++(int) {
+            Next();
+            return !this->stack_m.empty();
+        }
+    protected:
+
+        virtual int Intitialize() {
+
+
+            this->stack_m.push(this->root);
+            currNode = NULL;
+            prevNode = NULL;
+            has_more = 1;
+            Next();
+
+            return !this->stack_m.empty();
+        }
+
+    private:
+        Expression<T>* n;
+        Expression<T>* prevNode;
+        Expression<T>* currNode;
+        int has_more;
+
+        inline void Next() {
+            if (this->stack_m.empty()) {
+                has_more = 0;
+                return;
+            }
+
+            bool breakout = false;
+
+            while (!this->stack_m.empty()) {
+                currNode = this->stack_m.top();
+
+
+                if (prevNode == NULL || prevNode->GetLeft() == currNode || prevNode->GetRight() == currNode) {
+                    if (currNode->GetLeft() != NULL) {
+                        this->stack_m.push(currNode->GetLeft());
+                    } else if (currNode->GetRight() != NULL) {
+                        this->stack_m.push(currNode->GetRight());
+                    }
+                } else if (currNode->GetLeft() == prevNode) {
+                    if (currNode->GetRight() != NULL) {
+                        this->stack_m.push(currNode->GetRight());
+                    }
+                } else {
+                    n = currNode;
+                    this->stack_m.pop();
+                    breakout = true;
+                    //  
+                }
+
+                prevNode = currNode;
+
+                if (breakout) {
+                    break;
+                }
+
+            }
+
+        }
+
+    };
+
+    template<class T>
+    static T Evaluate(ExpressionPtr exp) {
+
+        PostOrderIterator<T> it(exp);
+        TypeStack stack;
+
+        while (it) {
+            T lhs = 0;
+            T rhs = 0;
+            Expression<T>* currNode = it;
+
+            switch (currNode->GetOp()) {
+
+                case CONSTANT:
+                    stack.push(currNode->GetValue());
+                    break;
+                case VARIABLE:
+                    stack.push(currNode->GetValue());
+                    break;
+                case PLUS:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(lhs + rhs);
+                    break;
+                case MINUS:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(lhs - rhs);
+                    break;
+                case MULTIPLY:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(lhs * rhs);
+                    break;
+                case DIVIDE:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(lhs / rhs);
+                    break;
+
+                case SIN:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::sin(lhs));
+                    break;
+                case COS:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::cos(lhs));
+                    break;
+                case TAN:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::tan(lhs));
+                    break;
+                case ASIN:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::asin(lhs));
+                    break;
+                case ACOS:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::acos(lhs));
+                    break;
+                case ATAN:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::atan(lhs));
+                    break;
+                case ATAN2:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::atan2(lhs, rhs));
+                    break;
+                case SQRT:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::sqrt(lhs));
+                    break;
+                case POW:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::pow(lhs, rhs));
+                    break;
+                case LOG:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::log(lhs));
+                    break;
+                case LOG10:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::log10(lhs));
+                    break;
+                case EXP:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::exp(lhs));
+                    break;
+                case SINH:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::sinh(lhs));
+                    break;
+                case COSH:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::cosh(lhs));
+                    break;
+                case TANH:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::tanh(lhs));
+                    break;
+                case FABS:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::fabs(lhs));
+                    break;
+                case ABS:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::fabs(lhs));
+                    break;
+                case FLOOR:
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::floor(lhs));
+                    break;
+                case NONE:
+
+                    break;
+                default:
+                    break;
+
+            }
+            it++;
+        }
+
+
+        return stack.top();
+
+    }
+
+    template<class T>
+    static T EvaluateDerivative(ExpressionPtr exp, const unsigned long &id) {
+
+        PostOrderIterator<T> it(exp);
+
+        PairStack stack;
+
+
+        while (it) {
+            std::pair<T, T> lhs = std::pair<T, T > (0, 0);
+            std::pair<T, T> rhs = std::pair<T, T > (0, 0);
+
+            T temp = 0;
+
+            Expression<T>* currNode = it;
+
+            switch (currNode->GetOp()) {
+
+                case CONSTANT:
+                    stack.push(std::pair<T, T > (currNode->GetValue(), T(0)));
+                    break;
+                case VARIABLE:
+                    if (currNode->GetId() == id) {
+                        //f(x) = x
+                        //f'(x) = 1
+                        stack.push(std::pair<T, T > (currNode->GetValue(), T(1)));
+                    } else {//constant
+                        //f(x) = C
+                        //f'(x) = 0
+                        stack.push(std::pair<T, T > (currNode->GetValue(), T(0)));
+                    }
+                    break;
+                case PLUS:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::pair<T, T > (lhs.first + rhs.first, lhs.second + rhs.second));
+                    // ret = lhs.second + rhs.second;
+                    break;
+                case MINUS:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    stack.push(std::pair<T, T > (lhs.first - rhs.first, lhs.second - rhs.second));
+                    // ret = lhs.second-rhs.second;
+                    break;
+                case MULTIPLY:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    temp = lhs.second * rhs.first + lhs.first * rhs.second;
+                    stack.push(std::pair<T, T > (lhs.first * rhs.first, temp));
+                    // ret =temp;
+
+                    break;
+                case DIVIDE:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    temp = (lhs.second * rhs.first + lhs.first * rhs.second) / (rhs.first * rhs.first);
+                    stack.push(std::pair<T, T > (lhs.first / rhs.first, temp));
+                    // ret = temp;
+                    break;
+
+                case SIN:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        stack.push(std::pair<T, T > (std::sin(lhs.first), lhs.second * std::cos(lhs.first)));
+                    } else {
+                        stack.push(std::pair<T, T > (std::sin(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case COS:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        stack.push(std::pair<T, T > (std::cos(lhs.first), lhs.second * (-1.0) * std::sin(lhs.first)));
+                    } else {
+                        stack.push(std::pair<T, T > (std::cos(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case TAN:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = lhs.second * ((T(1.0) / std::cos(lhs.first))*(T(1.0) / std::cos(lhs.first)));
+                        stack.push(std::pair<T, T > (std::tan(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::tan(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case ASIN:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = (lhs.second * T(1.0) / std::pow((T(1.0) - std::pow(lhs.first, T(2.0))), T(0.5)));
+                        stack.push(std::pair<T, T > (std::asin(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::asin(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case ACOS:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = (lhs.second * T(-1.0) / std::pow((T(1.0) - std::pow(lhs.first, T(2.0))), T(0.5)));
+                        stack.push(std::pair<T, T > (std::acos(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::acos(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case ATAN:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = (lhs.second * T(1.0) / (lhs.first * lhs.first + T(1.0)));
+                        stack.push(std::pair<T, T > (std::atan(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::atan(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case ATAN2:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = (rhs.first * lhs.second / (lhs.first * lhs.first + (rhs.first * rhs.first)));
+                        stack.push(std::pair<T, T > (std::atan2(lhs.first, rhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::atan2(lhs.first, rhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case SQRT:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = lhs.second * T(.5) / std::sqrt(lhs.first);
+                        stack.push(std::pair<T, T > (std::sqrt(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::sqrt(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case POW:
+                    rhs = stack.top();
+                    stack.pop();
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = (lhs.second * rhs.first) *
+                                std::pow(lhs.first, (rhs.first - T(1.0)));
+                        stack.push(std::pair<T, T > (std::pow(lhs.first, rhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::pow(lhs.first, rhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case LOG:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = (lhs.second * T(1.0)) / lhs.first;
+                        stack.push(std::pair<T, T > (std::log(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::log(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case LOG10:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = (lhs.second * T(1.0)) / (lhs.first * std::log(T(10.0)));
+                        stack.push(std::pair<T, T > (std::log10(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::log10(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case EXP:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = lhs.second * std::exp(lhs.first);
+                        stack.push(std::pair<T, T > (std::exp(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::exp(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case SINH:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = lhs.second * std::cosh(lhs.first);
+                        stack.push(std::pair<T, T > (std::sinh(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::sinh(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case COSH:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = lhs.second * std::sinh(lhs.first);
+                        stack.push(std::pair<T, T > (std::cosh(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::cosh(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case TANH:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = lhs.second * (T(1.0) / std::cosh(lhs.first))*(T(1.0) / std::cosh(lhs.first));
+                        stack.push(std::pair<T, T > (std::tanh(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::tanh(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case FABS:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = (lhs.second * lhs.first) /
+                                std::fabs(lhs.first);
+                        stack.push(std::pair<T, T > (std::fabs(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::fabs(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case ABS:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+                        temp = (lhs.second * lhs.first) /
+                                std::fabs(lhs.first);
+                        stack.push(std::pair<T, T > (std::fabs(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::fabs(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case FLOOR:
+                    lhs = stack.top();
+                    stack.pop();
+                    if (currNode->HasId(id)) {
+
+                        temp = T(0); //lhs.second * T(std::floor(lhs.first));
+                        stack.push(std::pair<T, T > (std::floor(lhs.first), temp));
+                    } else {
+                        stack.push(std::pair<T, T > (std::floor(lhs.first), T(0)));
+                    }
+                    //ret = stack.top().second;
+                    break;
+                case NONE:
+                    std::cout << "nothing to do here.\n";
+                    break;
+                default:
+                    break;
+
+            }
+
+            it++;
+        }
+
+
+        return stack.top().second;
+
+    }
+
+    /**
+     * Builds the derivative expression with respect to id. 
      * 
-     * @brief
-     * A template class to perform Automatic differentiation.
-     * Supports forward and reverse mode traversal of the chain rule.
-     * Supports higher order derivatives, as well as  partial and nth
-     * partial derivatives with respect to a ADNumber. Overrides most functions
-     * in cmath.h (all in the namespace std). Works by storing evaluated 
-     * expressions in a expression tree. The expression tree can than be 
-     * manipulated to give nth and nth partial derivatives. Template parameter
-     * should be of floating point type, either native or arbitrary precision.
-     * If arbitrary precision type is used, cmath.h functions must be 
-     * overridden. 
-     * 
-     * @author Matthew Supernaw
-     * 
-     * @contact msupernaw@gmail.com
-     * 
-     * @date January 4, 2012
-     * 
-     * 
+     * @param id
+     * @return 
      */
     template<class T>
+    static ExpressionPtr Differentiate(ExpressionPtr exp, unsigned long id = 0) {
+
+
+        std::map<ExpressionPtr, ExpressionPtr > derivatives;
+        typename std::map<ExpressionPtr, ExpressionPtr >::iterator df_it;
+
+        PostOrderIterator<T> it(exp);
+
+
+        while (it) {
+            Expression<T>* f = it;
+
+            //check if it was created.. if not,create it.
+            df_it = derivatives.find(f);
+
+            if (df_it == derivatives.end()) {
+
+                derivatives[(ExpressionPtr) f] = NEW_EXPRESSION(T) ();
+            }
+
+
+            if (f->GetLeft() != NULL) {
+
+                df_it = derivatives.find(f->GetLeft());
+                if (df_it == derivatives.end()) {
+
+                    derivatives[(ExpressionPtr) f->GetLeft()] = NEW_EXPRESSION(T) ();
+
+                }
+            }
+
+            if (f->GetRight() != NULL) {
+
+                df_it = derivatives.find(f->GetRight());
+
+                if (df_it == derivatives.end()) {
+
+                    derivatives[(ExpressionPtr) f->GetRight()] = NEW_EXPRESSION(T) ();
+
+                }
+            }
+
+
+            ExpressionPtr df = derivatives[f];
+
+            switch (f->GetOp()) {
+
+                case CONSTANT:
+                    df->SetOp(CONSTANT);
+                    df->SetValue(T(0.0));
+                    break;
+                case VARIABLE:
+                    if (f->GetId() == id) {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(1.0));
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+                    }
+                    break;
+                case MINUS:
+                    df->SetOp(MINUS);
+                    df->SetLeft(derivatives[f->GetLeft()]);
+                    df->SetRight(derivatives[f->GetRight()]);
+                    break;
+                case PLUS:
+                    df->SetOp(PLUS);
+                    df->SetLeft(derivatives[f->GetLeft()]);
+                    df->SetRight(derivatives[f->GetRight()]);
+                    break;
+                case DIVIDE:
+
+
+                    df->SetOp(DIVIDE);
+
+                    df->SetLeft(NEW_EXPRESSION(T) ()); //g'(x)h(x) - g(x)h'(x)
+                    df->GetLeft()->SetOp(MINUS);
+
+
+
+                    df->GetLeft()->SetLeft(NEW_EXPRESSION(T) ()); //g'(x)h(x)
+                    df->GetLeft()->GetLeft()->SetOp(MULTIPLY);
+                    if (f->GetLeft()) {
+                        df->GetLeft()->GetLeft()->SetLeft(derivatives[f->GetLeft()]);
+                    }
+                    df->GetLeft()->GetLeft()->SetRight(f->GetRight());
+
+
+                    df->GetLeft()->SetRight(NEW_EXPRESSION(T) ()); //g(x)h'(x)
+                    df->GetLeft()->GetRight()->SetOp(MULTIPLY);
+                    df->GetLeft()->GetRight()->SetLeft(f->GetLeft());
+
+                    if (f->GetRight()) {
+                        df->GetLeft()->GetRight()->SetRight(derivatives[f->GetRight()]);
+                    }
+
+
+
+                    df->SetRight(NEW_EXPRESSION(T) ());
+                    df->GetRight()->SetOp(POW);
+                    df->GetRight()->SetLeft(f->GetRight());
+                    //NEW_EXPRESSION(T)(2.0, 0, "", CONSTANT, NULL, NULL)
+                    df->GetRight()->SetRight(NEW_EXPRESSION(T)(2.0, 0, "", CONSTANT, NULL, NULL));
+                    // df->GetRight()->SetRight(f->GetRight()->Clone());
+
+                    break;
+                case MULTIPLY:
+                    //                    if (f->GetLeft()->GetOp() == CONSTANT
+                    //                            && f->GetRight()->GetOp() != CONSTANT) {
+                    //                        df->SetOp(MULTIPLY);
+                    //                        if (f->GetLeft() != NULL) {
+                    //                            df->SetLeft(f->GetLeft());
+                    //                        }
+                    //                        if (f->GetRight() != NULL) {
+                    //                            df->SetRight(derivatives[f->GetRight()]);
+                    //                        }
+                    //
+                    //
+                    //                    } else if (f->GetRight()->GetOp() == CONSTANT
+                    //                            && f->GetLeft()->GetOp() != CONSTANT) {
+                    //                        df->SetOp(MULTIPLY);
+                    //                        if (f->GetLeft()) {
+                    //                            df->SetLeft(derivatives[f->GetLeft()]);
+                    //                        }
+                    //                        if (f->GetRight()) {
+                    //                            df->SetRight(f->GetRight());
+                    //                        }
+                    //                    } else {
+
+
+
+                    df->SetOp(PLUS);
+
+                    df->SetLeft(NEW_EXPRESSION(T) ());
+                    df->GetLeft()->SetOp(MULTIPLY);
+
+                    df->GetLeft()->SetRight(f->GetRight());
+
+                    if (f->GetRight() != NULL) {
+                        df->GetLeft()->SetLeft(derivatives[f->GetLeft()]);
+                    }
+                    df->SetRight(NEW_EXPRESSION(T) ());
+                    df->GetRight()->SetOp(MULTIPLY);
+
+                    df->GetRight()->SetLeft(f->GetLeft());
+                    if (f->GetLeft() != NULL) {
+                        df->GetRight()->SetRight(derivatives[f->GetRight()]);
+                    }
+                    //  }
+                    break;
+                case SIN:
+                    if (f->GetLeft()->HasId(id)) {
+                        //f'(x) = cos(x)
+
+                        df->SetOp(MULTIPLY);
+                        df->SetLeft(derivatives[f->GetLeft()]); // = left->Differentiate(id);
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(COS);
+                        df->GetRight()->SetLeft(f->GetLeft()); // = left->DeepCopy();
+
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0));
+                    }
+
+                    break;
+                case COS:
+
+                    if (f->GetLeft()->HasId(id)) {
+                        //f'(x) = -sin(x)
+                        df->SetOp(MULTIPLY);
+
+                        df->SetLeft(derivatives[f->GetLeft()]);
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+
+                        df->GetRight()->SetOp(MULTIPLY);
+
+                        df->GetRight()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetLeft()->SetOp(CONSTANT);
+                        df->GetRight()->GetLeft()->SetValue(T(-1.0));
+
+
+                        df->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->SetOp(SIN);
+                        df->GetRight()->GetRight()->SetLeft(f->GetLeft());
+
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+                    }
+                    break;
+                case TAN:
+
+                    if (f->GetLeft()->HasId(id)) {
+                        //f'(x) = 1/cos(x)
+
+                        df->SetOp(MULTIPLY);
+                        df->SetLeft(derivatives[f->GetLeft()]); //f->GetLeft()->Differentiate(id);
+
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(MULTIPLY);
+
+
+                        df->GetRight()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetLeft()->SetOp(DIVIDE);
+
+
+
+                        df->GetRight()->GetLeft()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetLeft()->GetLeft()->SetOp(CONSTANT);
+                        df->GetRight()->GetLeft()->GetLeft()->SetValue(T(1.0));
+
+
+
+                        df->GetRight()->GetLeft()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetLeft()->GetRight()->SetOp(COS);
+                        df->GetRight()->GetLeft()->GetRight()->SetLeft(f->GetLeft());
+
+
+
+                        df->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->SetOp(DIVIDE);
+
+
+
+                        df->GetRight()->GetRight()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetLeft()->SetOp(CONSTANT);
+                        df->GetRight()->GetRight()->GetLeft()->SetValue(T(1.0));
+
+
+
+                        df->GetRight()->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetRight()->SetOp(COS);
+                        df->GetRight()->GetRight()->GetRight()->SetLeft(f->GetLeft());
+
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+                    }
+                    break;
+                case ASIN:
+
+                    if (f->GetLeft()->HasId(id)) {
+                        //f(x) = asin(x)
+                        //f'(x) = 1/(2 sqrt(1-x^2)= 1/(pow((1-pow(x,2)),0.5)
+
+                        df->SetOp(MULTIPLY);
+                        df->SetLeft(derivatives[f->GetLeft()]); //f->GetLeft()->Differentiate(id);
+
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(DIVIDE);
+
+
+                        df->GetRight()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetLeft()->SetOp(CONSTANT);
+                        df->GetRight()->GetLeft()->SetValue(T(1.0));
+
+
+                        df->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->SetOp(POW);
+
+
+                        df->GetRight()->GetRight()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetLeft()->SetOp(MINUS);
+
+
+                        df->GetRight()->GetRight()->GetLeft()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetLeft()->GetLeft()->SetOp(CONSTANT);
+                        df->GetRight()->GetRight()->GetLeft()->GetLeft()->SetValue(T(1.0));
+
+
+                        df->GetRight()->GetRight()->GetLeft()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetLeft()->GetRight()->SetOp(POW);
+                        df->GetRight()->GetRight()->GetLeft()->GetRight()->SetLeft(f->GetLeft());
+
+
+                        df->GetRight()->GetRight()->GetLeft()->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetLeft()->GetRight()->GetRight()->SetOp(CONSTANT);
+                        df->GetRight()->GetRight()->GetLeft()->GetRight()->GetRight()->SetValue(T(2.0));
+
+
+                        df->GetRight()->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetRight()->SetOp(CONSTANT);
+                        df->GetRight()->GetRight()->GetRight()->SetValue(T(0.5));
+
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+
+                    }
+                    break;
+                case ACOS:
+                    if (f->GetLeft()->HasId(id)) {
+                        //f(x) = acos(x)
+                        //f'(x) = -1/(sqrt(1-x^2) = -1/(pow((1-pow(x,2)),0.5)
+                        //-1/sqrt(1-x^2)
+                        df->SetOp(MULTIPLY);
+
+                        df->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetLeft()->SetOp(MULTIPLY);
+
+                        df->GetLeft()->SetLeft(NEW_EXPRESSION(T) ());
+
+                        df->GetLeft()->GetLeft()->SetOp(CONSTANT);
+                        df->GetLeft()->GetLeft()->SetValue(T(-1.0));
+
+
+                        df->GetLeft()->SetRight(derivatives[f->GetLeft()]);
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(DIVIDE);
+
+
+                        df->GetRight()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetLeft()->SetOp(CONSTANT);
+                        df->GetRight()->GetLeft()->SetValue(T(1.0));
+
+
+                        df->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->SetOp(POW);
+
+
+                        df->GetRight()->GetRight()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetLeft()->SetOp(MINUS);
+
+
+                        df->GetRight()->GetRight()->GetLeft()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetLeft()->GetLeft()->SetOp(CONSTANT);
+                        df->GetRight()->GetRight()->GetLeft()->GetLeft()->SetValue(T(1.0));
+
+
+                        df->GetRight()->GetRight()->GetLeft()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetLeft()->GetRight()->SetOp(POW);
+                        df->GetRight()->GetRight()->GetLeft()->GetRight()->SetLeft(f->GetLeft());
+
+
+                        df->GetRight()->GetRight()->GetLeft()->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetLeft()->GetRight()->GetRight()->SetOp(CONSTANT);
+                        df->GetRight()->GetRight()->GetLeft()->GetRight()->GetRight()->SetValue(T(2.0));
+
+
+                        df->GetRight()->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetRight()->SetOp(CONSTANT);
+                        df->GetRight()->GetRight()->GetRight()->SetValue(T(0.5));
+
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+
+                    }
+                    break;
+                case ATAN:
+                    if (f->GetLeft()->HasId(id)) {
+                        //f(x) = atan(x)
+                        //f'(x) 1/(x^2+1)
+
+                        df->SetOp(DIVIDE);
+
+                        df->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetLeft()->SetOp(MULTIPLY);
+
+                        df->GetLeft()->SetRight(NEW_EXPRESSION(T) ());
+
+                        df->GetLeft()->GetRight()->SetOp(CONSTANT);
+                        df->GetLeft()->GetRight()->SetValue(T(1.0));
+
+
+                        df->GetLeft()->SetLeft(derivatives[f->GetLeft()]);
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(PLUS);
+
+
+                        df->GetRight()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetLeft()->SetOp(MULTIPLY);
+                        df->GetRight()->GetLeft()->SetLeft(f->GetLeft());
+                        df->GetRight()->GetLeft()->SetRight(f->GetLeft());
+
+
+
+                        df->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->SetOp(CONSTANT);
+                        df->GetRight()->GetRight()->SetValue(T(1.0));
+
+
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+
+
+                    }
+                    break;
+
+                case ATAN2:
+                    if (f->GetLeft()->HasId(id)) {
+                        //f(x) = atan2(x,y)
+                        //f'(x) y/(x^2+y^2)
+
+                        df->SetOp(DIVIDE);
+
+                        df->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetLeft()->SetOp(MULTIPLY);
+                        df->GetLeft()->SetLeft(f->GetRight()); //y
+                        df->GetLeft()->SetRight(derivatives[f->GetLeft()]);
+
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(PLUS);
+
+
+                        df->GetRight()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetLeft()->SetOp(MULTIPLY);
+                        df->GetRight()->GetLeft()->SetLeft(f->GetLeft());
+                        df->GetRight()->GetLeft()->SetRight(f->GetLeft());
+
+
+
+                        df->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->SetOp(MULTIPLY);
+                        df->GetRight()->GetRight()->SetLeft(f->GetRight());
+                        df->GetRight()->GetRight()->SetRight(Clone(f->GetRight()));
+
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+
+                    }
+                    break;
+                case SQRT:
+                    if (f->GetLeft()->HasId(id)) {
+                        //f(x) = sqrt(x)
+                        //f'(x) = .5/sqrt(x)
+
+                        df->SetOp(DIVIDE);
+
+                        df->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetLeft()->SetOp(MULTIPLY);
+
+
+                        df->GetLeft()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetLeft()->GetRight()->SetValue(T(0.5));
+
+                        df->GetLeft()->SetLeft(derivatives[f->GetLeft()]);
+
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(SQRT);
+                        df->GetRight()->SetLeft(f->GetLeft());
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+                    }
+                    break;
+                case POW:
+
+                    if (f->GetLeft()->HasId(id)) {
+                        //f(x) =  x^y
+                        //f'(x) = yx^y-1
+
+                        df->SetOp(MULTIPLY);
+                        df->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetLeft()->SetOp(MULTIPLY);
+                        df->GetLeft()->SetLeft(derivatives[f->GetLeft()]);
+                        df->GetLeft()->SetRight(f->GetRight());
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(POW);
+
+
+                        df->GetRight()->SetLeft(f->GetLeft());
+
+
+
+                        df->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->SetOp(MINUS);
+                        df->GetRight()->GetRight()->SetLeft(f->GetRight());
+
+
+                        df->GetRight()->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->GetRight()->SetOp(CONSTANT);
+                        df->GetRight()->GetRight()->GetRight()->SetValue(T(1.0));
+
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+                    }
+                    break;
+                case LOG:
+                    if (f->GetLeft()->HasId(id)) {
+                        //f(x) = log(x)
+                        //f'(x) = 1/x
+
+                        df->SetOp(DIVIDE);
+
+                        df->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetLeft()->SetOp(MULTIPLY);
+
+                        df->GetLeft()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetLeft()->GetLeft()->SetOp(CONSTANT);
+                        df->GetLeft()->GetLeft()->SetValue(T(1.0));
+                        df->GetLeft()->SetRight(derivatives[f->GetLeft()]);
+
+                        df->SetRight(f->GetLeft());
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+                    }
+                    break;
+                case LOG10:
+                    //f(x) = log10(x)
+                    //f'(x) = 1/(xlog(10))
+
+                    if (f->GetLeft()->HasId(id)) {
+
+
+
+                        df->SetOp(DIVIDE);
+
+                        df->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetLeft()->SetOp(MULTIPLY);
+
+
+                        df->GetLeft()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetLeft()->GetLeft()->SetOp(CONSTANT);
+                        df->GetLeft()->GetLeft()->SetValue(T(1.0));
+
+                        df->GetLeft()->SetRight(derivatives[f->GetLeft()]);
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(MULTIPLY);
+
+                        df->GetRight()->SetLeft(f->GetLeft());
+
+
+                        df->GetRight()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetRight()->SetOp(CONSTANT);
+                        df->GetRight()->GetRight()->SetValue(std::log(T(10.0)));
+                    } else {
+                        df->SetOp(LOG);
+                        df->SetLeft(f);
+                    }
+                    break;
+                case EXP:
+                    //f(x) = e^x
+                    //f'(x) =e^x
+
+                    if (f->GetLeft()->HasId(id)) {
+
+                        df->SetOp(MULTIPLY);
+                        df->SetLeft(derivatives[f->GetLeft()]);
+
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(EXP);
+                        df->GetRight()->SetLeft(f->GetLeft());
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+                    }
+                    break;
+                case SINH:
+                    if (f->GetLeft()->HasId(id)) {
+                        //f(x) = sinh(x)
+                        //f'(x) = cosh(x)
+
+                        df->SetOp(MULTIPLY);
+                        df->SetLeft(derivatives[f->GetLeft()]);
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(COSH);
+                        df->GetRight()->SetLeft(f->GetLeft());
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+                    }
+                    break;
+                case COSH:
+                    if (f->GetLeft()->HasId(id)) {
+
+                        df->SetOp(MULTIPLY);
+                        df->SetLeft(derivatives[f->GetLeft()]);
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(SINH);
+                        df->GetRight()->SetLeft(f->GetLeft());
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+                    }
+                    break;
+                case TANH:
+                    //f(x) = tanh(x)
+                    //f'(x) =1- tanh(x)*tanh(x)
+
+                    if (f->GetLeft()->HasId(id)) {
+
+                        df->SetOp(MULTIPLY);
+
+                        df->SetLeft(derivatives[f->GetLeft()]);
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(MULTIPLY);
+
+                        df->GetRight()->SetLeft(NEW_EXPRESSION(T) ());
+
+
+                        df->GetRight()->GetLeft()->SetOp(DIVIDE);
+
+                        df->GetRight()->GetLeft()->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetLeft()->GetLeft()->SetOp(CONSTANT);
+                        df->GetRight()->GetLeft()->GetLeft()->SetValue(T(1.0));
+
+
+                        df->GetRight()->GetLeft()->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->GetLeft()->GetRight()->SetOp(COSH);
+                        df->GetRight()->GetLeft()->GetRight()->SetLeft(f->GetLeft());
+
+
+                        df->GetRight()->SetRight(df->GetRight()->GetLeft());
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+
+                    }
+                    break;
+
+                case FABS:
+
+                    if (f->GetLeft()->HasId(id)) {
+
+                        df->SetOp(DIVIDE);
+
+                        df->SetLeft(NEW_EXPRESSION(T) ());
+                        df->GetLeft()->SetOp(MULTIPLY);
+
+                        df->GetLeft()->SetLeft(derivatives[f->GetLeft()]);
+                        df->GetLeft()->SetRight(f->GetLeft());
+
+
+
+                        df->SetRight(NEW_EXPRESSION(T) ());
+                        df->GetRight()->SetOp(FABS);
+                        df->GetRight()->SetLeft(f->GetLeft());
+                    } else {
+                        df->SetOp(CONSTANT);
+                        df->SetValue(T(0.0));
+
+                    }
+                    break;
+                case FLOOR:
+                    df->SetOp(CONSTANT);
+                    df->SetValue(T(0.0));
+                    break;
+                case NONE:
+
+                default:
+                    break;
+
+            }
+
+
+            it++;
+        }
+
+        return derivatives[exp];
+    }
+    //#define AD_TRACE
+#ifdef AD_TRACE
+#define ADDEBUG std::cout<<__func__<<":"<<__LINE__<<std::endl;
+#else
+#define ADDEBUG  
+#endif
+
+    template<class T>
     class ADNumber {
+        T value;
+        std::string name;
+        unsigned long id;
+
+
     public:
+        ExpressionPtr expression;
 
         /*!
          * Default constructor.
          */
         ADNumber() :
-        expression_m(new Expression<T>()),
-        value_m(T(0.0)),
-        fderivative_m(T(1)),
-        variableName_(std::string("na")),
-        id_m(IDGenerator::instance()->next()) {
-            //  Lock l(this->mutex_m);
-            this->Initialize();
-
+        expression(new Expression<T>()),
+        value(T(0.0)),
+        //name(std::string("na")),
+        id(IDGenerator::instance()->next()) {
+            ADDEBUG
+            Initialize();
         }
-
-
-        //
-        //    ADNumber(T value, T derivative = T(1)) : value_(value),
-        //    fderivative_(derivative),
-        //    variableName_(std::string("x")),
-        //    id_(IDGenerator::instance()->next()),
-        //    expression_(new Expression<T>()) {
-        //        this->Initialize();
-        //    }
 
         /*!
          * Constructor
          * @param value
          * @param derivative
          */
-        ADNumber(const T &value, const T &derivative = T(1.0)) :
-        expression_m(new Expression<T>()),
-        value_m(value),
-        fderivative_m(derivative),
-        variableName_(std::string("x")),
-        id_m(IDGenerator::instance()->next()) {
-            //  Lock l(this->mutex_m);
-            this->Initialize();
+        ADNumber(const T &value) :
+        expression(new Expression<T>()),
+        value(value),
+        // name(std::string("na")),
+        id(IDGenerator::instance()->next()) {
+            ADDEBUG
+            Initialize();
+        }
 
+        /*!
+         * Constructor
+         * @param value
+         * @param derivative
+         */
+        ADNumber(const T &value, Expression<T>* exp) :
+        expression(exp),
+        value(value),
+        // name(std::string("na")),
+        id(IDGenerator::instance()->next()) {
+            expression->take();
+            expression->SetId(id);
         }
 
         /*!
@@ -3413,14 +2291,13 @@ namespace ad {
          * @param value
          * @param derivative
          */
-        ADNumber(const std::string &name, const T &value, const T &derivative = T(1)) :
-        value_m(value),
-        fderivative_m(derivative),
-        variableName_(name),
-        expression_m(new Expression<T>()),
-        id_m(IDGenerator::instance()->next()) {
-            //  Lock l(this->mutex_m);
-            this->Initialize();
+        ADNumber(const std::string &name, const T &value = T(0.0)) :
+        value(value),
+        name(name),
+        expression(new Expression<T>()),
+        id(IDGenerator::instance()->next()) {
+            ADDEBUG
+            Initialize();
         }
 
         /*!
@@ -3429,60 +2306,51 @@ namespace ad {
          * @param orig
          */
         ADNumber(const ADNumber& orig) :
-        value_m(T(0.0)),
-        fderivative_m(T(1)),
-        variableName_(std::string("na")),
-        id_m(orig.id_m) {
-            // Lock l(this->mutex_m);
-            //  Lock ll(orig.mutex_m);
+        value(orig.value),
+        name(orig.name),
+        id(orig.id) {
+            ADDEBUG
+            expression = Clone(orig.expression);
+            expression->take();
 
-            this->variableName_ = orig.variableName_;
-            this->value_m = orig.value_m;
-            this->fderivative_m = orig.fderivative_m;
-            this->id_m = orig.id_m;
-
-            if (orig.expression_m != NULL) {
-
-                this->expression_m = orig.expression_m->Clone();
-            }
-            // this->Initialize();
         }
 
-        /*!
-         * Destructor.
-         */
+        ADNumber(ExpressionPtr exp) :
+        value(Evaluate(exp)),
+        name(exp->GetName()),
+        id(IDGenerator::instance()->next()) {
+            ADDEBUG
+            expression = exp;
+            SetValue(Evaluate(exp));
+            expression->take();
+
+        }
+
         virtual ~ADNumber() {
-            //  Lock l(this->mutex_m);
-
-            if (this->expression_m != NULL) {
-                delete this->expression_m;
-            }
+            expression->release();
         }
+
+
 
         //    /*!
         //     * returns this value.
         //     */
 
         operator T() const {
-            return this->value_m;
+            return value;
         }
 
         /*!
          * Returns this value.
          */
         operator ADNumber<T>() const {
-            //  Lock l(this->mutex_m);
+            ADDEBUG
             return this;
         }
 
-        /**
-         * Return the size of the underlying expression tree.
-         * 
-         * @return expression size
-         */
-        size_t Size() {
-            return this->expression_m->Size();
-        }
+        //        const ADNumber<T> operator (const ADNumber<T> &val) {
+        //
+        //        }
 
         /**
          * In member assignment operator to set this 
@@ -3491,17 +2359,20 @@ namespace ad {
          * @param val
          * @return ADNumber
          */
-        ADNumber<T> & operator =(const ADNumber<T> &val) {
-            //  Lock l(this->mutex_m);
-            if (val.expression_m != NULL) {
-                delete this->expression_m;
-            }
+         ADNumber<T>& operator =(const ADNumber<T> &val)  {
+            value = val.GetValue();
 
-            this->expression_m = val.expression_m->Clone();
-            this->value_m = val.GetValue();
-            this->fderivative_m = val.Forward();
-            this->id_m = val.id_m;
-            this->variableName_ = val.variableName_;
+            ExpressionPtr exp = expression;
+
+
+            expression = val.expression;
+            expression->take();
+
+
+
+            if (exp != NULL) {
+                exp->release();
+            }
 
             return *this;
         }
@@ -3514,15 +2385,18 @@ namespace ad {
          * @return ADNumber
          */
         ADNumber<T> & operator =(const T & val) {
-            //  Lock l(this->mutex_m);
-            this->value_m = val;
-            this->fderivative_m = T(1.0);
-            this->id_m = uint32_t(IDGenerator::instance()->next());
-            delete this->expression_m;
-            this->expression_m = new Expression<T > ();
+            value = val;
 
+            if (expression->GetLeft() != NULL) {
+                expression->GetLeft()->release();
+            }
+            if (expression->GetRight() != NULL) {
+                expression->GetRight()->release();
+            }
+            expression->SetLeft(NULL);
+            expression->SetRight(NULL);
+            expression->SetValue(val);
 
-            this->Initialize();
 
             return *this;
         }
@@ -3536,15 +2410,20 @@ namespace ad {
          * @return ADNumber
          */
         const ADNumber<T> operator +(const ADNumber<T>& rhs) const {
-            //  Lock l(this->mutex_m);
-            ADNumber<T > ret(T(this->value_m + rhs.GetValue()),
-                    this->fderivative_m + rhs.Forward());
 
-            ret.expression_m->SetOp(PLUS);
-            ret.expression_m->SetLeft(this->expression_m->Clone());
-            ret.expression_m->SetRight(rhs.expression_m->Clone());
+            T val = value + rhs.value;
+            if (expression == rhs.expression) {
 
-            return ret;
+                return ADNumber<T > (val,
+                        NEW_EXPRESSION(T)(val, 0, MULTIPLY,
+                        NEW_EXPRESSION(T)(2.0, 0, CONSTANT, NULL, NULL),
+                        expression));
+            } else {
+
+                return ADNumber<T > (val,
+                        NEW_EXPRESSION(T)(val,
+                        0, "", PLUS,expression, rhs.expression));
+            }
         }
 
         /**
@@ -3556,19 +2435,12 @@ namespace ad {
          * @return ADNumber
          */
         const ADNumber<T> operator +(const T & rhs) const {
-            //  Lock l(this->mutex_m);
-            ADNumber<T > ret(T(this->value_m + rhs),
-                    T(this->fderivative_m));
+            T val = value + rhs;
+            return ADNumber<T > (val,
+                    NEW_EXPRESSION(T)(val,
+                    0, PLUS, expression,
+                    NEW_EXPRESSION(T)(rhs, 0, CONSTANT, NULL, NULL)));
 
-            ret.expression_m->SetOp(PLUS);
-            ret.expression_m->SetLeft(this->expression_m->Clone());
-
-            Expression<T> *temp = new Expression<T > ();
-            temp->SetOp(CONSTANT);
-            temp->SetValue(rhs);
-            ret.expression_m->SetRight(temp);
-
-            return ret;
         }
 
         /**
@@ -3580,16 +2452,12 @@ namespace ad {
          * @return ADNmuber
          */
         const ADNumber<T> operator -(const ADNumber<T>& rhs) const {
-            //  Lock l(this->mutex_m);
-            ADNumber<T > ret(T(this->value_m - rhs.GetValue()),
-                    T(this->fderivative_m - rhs.Forward()));
 
-
-            ret.expression_m->SetOp(MINUS);
-            ret.expression_m->SetLeft(this->expression_m->Clone());
-            ret.expression_m->SetRight(rhs.expression_m->Clone());
-
-            return ret;
+            T val = value - rhs;
+            return ADNumber<T > (val,
+                    NEW_EXPRESSION(T)(val,
+                    0, MINUS, expression,rhs.expression));
+            //}
         }
 
         /**
@@ -3600,19 +2468,12 @@ namespace ad {
          * @return ADNumber
          */
         const ADNumber<T> operator -(const T & rhs) const {
-            //  Lock l(this->mutex_m);
-            ADNumber<T > ret(T(this->value_m - rhs),
-                    T(this->fderivative_m));
 
-            ret.expression_m->SetOp(MINUS);
-            ret.expression_m->SetLeft(this->expression_m->Clone());
-
-            Expression<T> *temp = new Expression<T > ();
-            temp->SetOp(CONSTANT);
-            temp->SetValue(rhs);
-            ret.expression_m->SetRight(temp);
-
-            return ret;
+            T val = value - rhs;
+            return ADNumber<T > (val,
+                    NEW_EXPRESSION(T)(val,
+                    0, MINUS, expression,
+                    NEW_EXPRESSION(T)(rhs, 0, CONSTANT, NULL, NULL)));
         }
 
         /*!
@@ -3621,16 +2482,21 @@ namespace ad {
          * this value_ * rhs derivative  + rhs value * this derivative).
          */
         const ADNumber<T> operator *(const ADNumber<T>& rhs) const {
-            //  Lock l(this->mutex_m);
-            ADNumber<T > ret(T(this->value_m * rhs.GetValue()),
-                    T(this->value_m * rhs.Forward() +
-                    rhs.GetValue() * this->fderivative_m));
 
-            ret.expression_m->SetOp(MULTIPLY);
-            ret.expression_m->SetLeft(this->expression_m->Clone());
-            ret.expression_m->SetRight(rhs.expression_m->Clone());
+            T val = value * rhs.value;
+            if (expression == rhs.expression) {
 
-            return ret;
+                return ADNumber<T > (val,
+                        NEW_EXPRESSION(T)(val, 0, POW,
+                        expression,
+                        NEW_EXPRESSION(T)(2.0, 0, CONSTANT, NULL, NULL)));
+            } else {
+
+                return ADNumber<T > (val,
+                        NEW_EXPRESSION(T)(val,
+                        0, MULTIPLY,expression, rhs.expression));
+            }
+
         }
 
         /*!
@@ -3639,19 +2505,12 @@ namespace ad {
          * this value_ * 0  + rhs value * this derivative).
          */
         const ADNumber<T> operator *(const T & rhs) const {
-            //  Lock l(this->mutex_m);
-            ADNumber<T > ret(T(this->value_m * rhs),
-                    T(this->value_m * T(0) + rhs * this->fderivative_m));
 
-            ret.expression_m->SetOp(MULTIPLY);
-            ret.expression_m->SetLeft(this->expression_m->Clone());
-
-            Expression<T> *temp = new Expression<T > ();
-            temp->SetOp(CONSTANT);
-            temp->SetValue(rhs);
-            ret.expression_m->SetRight(temp);
-
-            return ret;
+            T val = value * rhs;
+            return ADNumber<T > (val,
+                    NEW_EXPRESSION(T)(val,
+                    0, MULTIPLY, expression,
+                    NEW_EXPRESSION(T)(rhs, 0, CONSTANT, NULL, NULL)));
         }
 
         /**
@@ -3660,16 +2519,12 @@ namespace ad {
          * @return 
          */
         const ADNumber<T> operator /(const ADNumber<T>& rhs) const {
-            //  Lock l(this->mutex_m);
-            ADNumber<T > ret(T(this->value_m / rhs.value_m),
-                    T((rhs.GetValue() * this->fderivative_m -
-                    this->value_m * rhs.Forward()) / (rhs.GetValue() * rhs.GetValue())));
 
-            ret.expression_m->SetOp(DIVIDE);
-            ret.expression_m->SetLeft(this->expression_m->Clone());
-            ret.expression_m->SetRight(rhs.expression_m->Clone());
+            T val = value / rhs.value;
+            return ADNumber<T > (val,
+                    NEW_EXPRESSION(T)(val,
+                    0, DIVIDE,expression, rhs.expression ));
 
-            return ret;
         }
 
         /*!
@@ -3678,19 +2533,12 @@ namespace ad {
          * (this value_ * rhs derivative  - rhs value * 0)/(rhs value * rhs value)).
          */
         const ADNumber<T> operator /(const T & rhs) const {
-            //  Lock l(this->mutex_m);
-            ADNumber<T > ret(T(this->value_m / rhs),
-                    T((rhs * this->value_m - this->value_m * 0) / (rhs * rhs)));
 
-            ret.expression_m->SetOp(DIVIDE);
-            ret.expression_m->SetLeft(this->expression_m->Clone());
-
-            Expression<T> *temp = new Expression<T > ();
-            temp->SetOp(CONSTANT);
-            temp->SetValue(rhs);
-            ret.expression_m->SetRight(temp);
-
-            return ret;
+            T val = value / rhs;
+            return ADNumber<T > (val,
+                    NEW_EXPRESSION(T)(val,
+                    0, DIVIDE, expression,
+                    NEW_EXPRESSION(T)(rhs, 0, CONSTANT, NULL, NULL)));
         }
 
         /*!
@@ -3698,18 +2546,22 @@ namespace ad {
          * @param rhs
          * @return 
          */
-        ADNumber<T>& operator +=(const ADNumber<T>& rhs) {
 
-            Expression<T>* exp = new Expression<T>;
-            exp->SetLeft(this->expression_m);
-            exp->SetRight(rhs.expression_m->Clone());
-            exp->SetValue(this->GetValue() + rhs.GetValue());
-            exp->SetOp(PLUS);
-            this->expression_m = exp;
-            this->value_m += rhs.GetValue();
-            this->fderivative_m = T(this->value_m * rhs.Forward() +
-                    rhs.GetValue() * this->fderivative_m);
 
+        const ADNumber<T>& operator +=(const ADNumber<T>& rhs) {
+
+            T val = value + rhs.value;
+
+            ExpressionPtr exp = NEW_EXPRESSION(T) (val, id, name, PLUS, expression, rhs.expression);
+            if (expression != NULL) {
+                expression->release();
+            }
+
+            expression = exp;
+
+
+            expression->take();
+            value = val;
             return *this;
         }
 
@@ -3719,16 +2571,15 @@ namespace ad {
          * @param rhs
          * @return 
          */
-        ADNumber<T>& operator -=(const ADNumber<T>& rhs) {
-            Expression<T>* exp = new Expression<T>;
-            exp->SetLeft(this->expression_m);
-            exp->SetRight(rhs.expression_m->Clone());
-            exp->SetValue(this->GetValue() + rhs.GetValue());
-            exp->SetOp(MINUS);
-            this->expression_m = exp;
-            this->value_m += rhs.GetValue();
-            this->fderivative_m = T(this->fderivative_m - rhs.Forward());
-
+        const ADNumber<T>& operator -=(const ADNumber<T>& rhs) {
+            ADDEBUG
+            ExpressionPtr exp = NEW_EXPRESSION(T) (value - rhs.value, id, name, MINUS, expression, rhs.expression);
+            if (expression != NULL) {
+                expression->release();
+            }
+            expression = exp;
+            expression->take();
+            value = expression->GetValue();
             return *this;
         }
 
@@ -3738,19 +2589,19 @@ namespace ad {
          * @param rhs
          * @return 
          */
-        ADNumber<T>& operator *=(const ADNumber<T>& rhs) {
-            //            //  Lock l(this->mutex_m);
-            //            ADNumber<T> temp = *this;
-            //            ADNumber<T> ret = (temp * rhs);
-            //            if (ret.expression_m != NULL) {
-            //                delete this->expression_m;
-            //                this->expression_m = ret.expression_m->Clone();
-            //            }
-            //            this->value_m = ret.GetValue();
-            //            this->fderivative_m = ret.Forward();
-            //
-            //            return ret;
-            *this = *this*rhs;
+        const ADNumber<T>& operator *=(const ADNumber<T>& rhs) {
+            ADDEBUG
+            ExpressionPtr temp = this->expression;
+            if (this->expression == rhs.expression) {
+                temp = ad::Clone(this->expression);
+            }
+            ExpressionPtr exp = NEW_EXPRESSION(T) (value * rhs.value, id, name, MULTIPLY, temp, rhs.expression);
+            if (expression != NULL) {
+                expression->release();
+            }
+            expression = exp;
+            expression->take();
+            value = expression->GetValue();
             return *this;
         }
 
@@ -3760,19 +2611,15 @@ namespace ad {
          * @param rhs
          * @return 
          */
-        ADNumber<T>& operator /=(const ADNumber<T>&rhs) {
-            //            //  Lock l(this->mutex_m);
-            //            ADNumber<T> temp = *this;
-            //            ADNumber<T> ret = (temp / rhs);
-            //            if (ret.expression_m != NULL) {
-            //                delete this->expression_m;
-            //                this->expression_m = ret.expression_m->Clone();
-            //            }
-            //            this->value_m = ret.GetValue();
-            //            this->fderivative_m = ret.Forward();
-            //
-            //            return ret;
-            *this = *this*rhs;
+        const ADNumber<T>& operator /=(const ADNumber<T>&rhs) {
+            ADDEBUG
+            ExpressionPtr exp = NEW_EXPRESSION(T) (value / rhs.value, id, name, DIVIDE, expression, rhs.expression);
+            if (expression != NULL) {
+                expression->release();
+            }
+            expression = exp;
+            expression->take();
+            value = expression->GetValue();
             return *this;
         }
 
@@ -3782,19 +2629,19 @@ namespace ad {
          * @param rhs
          * @return 
          */
-        ADNumber<T>& operator +=(const T & rhs) {
-            //  Lock l(this->mutex_m);
-            //            ADNumber<T> temp = *this;
-            //            ADNumber<T> ret = (temp + rhs);
-            //            if (ret.expression_m != NULL) {
-            //                delete this->expression_m;
-            //                this->expression_m = ret.expression_m->Clone();
-            //            }
-            //            this->value_m = ret.GetValue();
-            //            this->fderivative_m = ret.Forward();
-            //
-            //            return ret;
-            *this = *this+rhs;
+        const ADNumber<T>& operator +=(const T & rhs) {
+            ADDEBUG
+            ExpressionPtr c = NEW_EXPRESSION(T) ();
+            c->SetOp(CONSTANT);
+            c->SetValue(T(rhs));
+
+            ExpressionPtr exp = NEW_EXPRESSION(T) (value + rhs, id, name, PLUS, expression, c);
+            if (expression != NULL) {
+                expression->release();
+            }
+            expression = exp;
+            expression->take();
+            value = expression->GetValue();
             return *this;
         }
 
@@ -3804,19 +2651,18 @@ namespace ad {
          * @param rhs
          * @return 
          */
-        ADNumber<T>& operator -=(const T & rhs) {
-            //            //  Lock l(this->mutex_m);
-            //            ADNumber<T> temp = *this;
-            //            ADNumber<T> ret = (temp - rhs);
-            //            if (ret.expression_m != NULL) {
-            //                delete this->expression_m;
-            //                this->expression_m = ret.expression_m->Clone();
-            //            }
-            //            this->value_m = ret.GetValue();
-            //            this->fderivative_m = ret.Forward();
-            //
-            //            return ret;
-            *this = *this-rhs;
+        const ADNumber<T>& operator -=(const T & rhs) {
+            ADDEBUG
+            ExpressionPtr c = NEW_EXPRESSION(T) ();
+            c->SetOp(CONSTANT);
+            c->SetValue(T(rhs));
+            ExpressionPtr exp = NEW_EXPRESSION(T) (value - rhs, id, name, MINUS, expression, c);
+            if (expression != NULL) {
+                expression->release();
+            }
+            expression = exp;
+            expression->take();
+            value = expression->GetValue();
             return *this;
         }
 
@@ -3827,18 +2673,17 @@ namespace ad {
          * @return 
          */
         ADNumber<T>& operator *=(const T & rhs) {
-            //            //  Lock l(this->mutex_m);
-            //            ADNumber<T> temp = *this;
-            //            ADNumber<T> ret = (temp * rhs);
-            //            if (ret.expression_m != NULL) {
-            //                delete this->expression_m;
-            //                this->expression_m = ret.expression_m->Clone();
-            //            }
-            //            this->value_m = ret.GetValue();
-            //            this->fderivative_m = ret.Forward();
-            //
-            //            return ret;
-            *this = *this*rhs;
+            ADDEBUG
+            ExpressionPtr c = NEW_EXPRESSION(T) ();
+            c->SetOp(CONSTANT);
+            c->SetValue(T(rhs));
+            ExpressionPtr exp = NEW_EXPRESSION(T) (value * rhs, id, name, MULTIPLY, expression, c);
+            if (expression != NULL) {
+                expression->release();
+            }
+            expression = exp;
+            expression->take();
+            value = expression->GetValue();
             return *this;
         }
 
@@ -3849,18 +2694,17 @@ namespace ad {
          * @return 
          */
         ADNumber<T>* operator /=(const T & rhs) {
-            //            //  Lock l(this->mutex_m);
-            //            ADNumber<T> temp = *this;
-            //            ADNumber<T> ret = (temp / rhs);
-            //            if (ret.expression_m != NULL) {
-            //                delete this->expression_m;
-            //                this->expression_m = ret.expression_m->Clone();
-            //            }
-            //            this->value_m = ret.GetValue();
-            //            this->fderivative_m = ret.Forward();
-            //
-            //            return ret;
-            *this = *this / rhs;
+            ADDEBUG
+            ExpressionPtr c = NEW_EXPRESSION(T) ();
+            c->SetOp(CONSTANT);
+            c->SetValue(T(rhs));
+            ExpressionPtr exp = NEW_EXPRESSION(T) (value / rhs, id, name, DIVIDE, expression, c);
+            if (expression != NULL) {
+                expression->release();
+            }
+            expression = exp;
+            expression->take();
+            value = expression->GetValue();
             return *this;
         }
 
@@ -3869,18 +2713,21 @@ namespace ad {
          * 
          * @return 
          */
-        ADNumber<T>& operator ++() {
-            //            //  Lock l(this->mutex_m);
-            //            ADNumber<T> temp = *this;
-            //            ADNumber<T> ret(*this+T(1.0));
-            //            this->value_m = ret.GetValue();
-            //            this->fderivative_m = ret.Forward();
-            //            delete this->expression_m;
-            //            this->expression_m = ret.expression_m->Clone();
-            //
-            //            return *this;
-            *this = *this+T(1.0);
+        const ADNumber<T>& operator ++() {
+            ADDEBUG
+            ExpressionPtr c = NEW_EXPRESSION(T) ();
+            c->SetOp(CONSTANT);
+            c->SetValue(T(1.0));
+
+            ExpressionPtr exp = NEW_EXPRESSION(T) (value + 1, id, name, PLUS, expression, c);
+            if (expression != NULL) {
+                expression->release();
+            }
+            expression = exp;
+            expression->take();
+            value = expression->GetValue();
             return *this;
+
         }
 
         /*!
@@ -3888,15 +2735,18 @@ namespace ad {
          * 
          * @return 
          */
-        ADNumber<T> operator --() {
-            //  Lock l(this->mutex_m);
-            ADNumber<T> temp = *this;
-            ADNumber<T> ret(temp - T(1.0));
-            this->value_m = ret.GetValue();
-            this->fderivative_m = ret.Forward();
-            delete this->expression_m;
-            this->expression_m = ret.expression_m->Clone();
-
+        const ADNumber<T>& operator --() {
+            ADDEBUG
+            ExpressionPtr c = NEW_EXPRESSION(T) ();
+            c->SetOp(CONSTANT);
+            c->SetValue(T(1.0));
+            ExpressionPtr exp = NEW_EXPRESSION(T) (value - 1, id, name, MINUS, expression, c);
+            if (expression != NULL) {
+                expression->release();
+            }
+            expression = exp;
+            expression->take();
+            value = expression->GetValue();
             return *this;
         }
 
@@ -3905,18 +2755,20 @@ namespace ad {
          * 
          * @param 
          */
-        ADNumber<T> operator ++(int) {
-            //  Lock l(this->mutex_m);
-            ADNumber<T> temp = *this;
+        const ADNumber<T>& operator ++(int) {
+            ADDEBUG
+            ExpressionPtr c = NEW_EXPRESSION(T) ();
+            c->SetOp(CONSTANT);
+            c->SetValue(T(1.0));
 
-            ADNumber<T> ret(temp + T(1.0));
-            this->value_m = ret.GetValue();
-            this->fderivative_m = ret.Forward();
-            delete this->expression_m;
-            this->expression_m = ret.expression_m->Clone();
-
-            return temp;
-
+            ExpressionPtr exp = NEW_EXPRESSION(T) (value + 1, id, name, PLUS, expression, c);
+            if (expression != NULL) {
+                expression->release();
+            }
+            expression = exp;
+            expression->take();
+            value = expression->GetValue();
+            return *this;
         }
 
         /*!
@@ -3924,1277 +2776,28 @@ namespace ad {
          * 
          * @param 
          */
-        ADNumber<T> operator --(int) {
-            //  Lock l(this->mutex_m);
-            ADNumber<T> temp = *this;
+        const ADNumber<T>& operator --(int) {
+            ADDEBUG
+            ExpressionPtr c = NEW_EXPRESSION(T) ();
+            c->SetOp(CONSTANT);
+            c->SetValue(T(1.0));
 
-            ADNumber<T> ret(*this-T(1.0));
-            this->value_m = ret.GetValue();
-            this->fderivative_m = ret.Forward();
-            delete this->expression_m;
-            this->expression_m = ret.expression_m->Clone();
-
-            return *temp;
-        }
-
-        void Reset(T val = T(0), T deriv = T(1)) {
-            if (this->expression_m != NULL) {
-                delete this->expression_m;
+            ExpressionPtr exp = NEW_EXPRESSION(T) (value - 1, id, name, PLUS, expression, c);
+            if (expression != NULL) {
+                expression->release();
             }
-
-            this->expression_m = new Expression<T > ();
-            this->value_m = val;
-            this->fderivative_m = deriv;
-            this->Initialize();
+            expression = exp;
+            expression->take();
+            value = expression->GetValue();
+            return *this;
         }
 
         /*!
          * Returns the computed value.
          */
         const T GetValue() const {
-            //  //  Lock l(this->mutex_m);
-            return this->value_m;
-        }
-
-        /*!
-         * Returns the result of all derivatives in the expression chain via forward
-         * accumulation. Forward mode automatic differentiation is accomplished by
-         * the dual numbers method.
-         * Source:http://en.wikipedia.org/wiki/Automatic_differentiation#Automatic_differentiation_using_dual_numbers
-         */
-        const T Forward() const {
-            ////  Lock l(this->mutex_m);
-            return this->fderivative_m;
-        }
-
-        /*!
-         * Returns the result of all derivatives in the expression chain via reverse
-         * accumulation.  Reverse accumulation traverses the chain rule from left
-         * to right, or in the case of the computational graph,
-         * from top to bottom.
-         * Source: http://en.wikipedia.org/wiki/Automatic_differentiation#Reverse_accumulation
-         */
-        const T Reverse() const {
-            //Lock l(this->mutex_m);
-            if (this->expression_m == NULL) {
-                return T(0);
-            }
-
-            Expression<T> * exp = this->expression_m->Differentiate();
-            T ret = exp->Evaluate();
-            delete exp;
-
-            return ret;
-
-        }
-
-        /*!
-         * Derivative with respect to var0....var1 in order.
-         * @param var0
-         * @return numerical derivative
-         */
-        const T WRT(const ADNumber<T> &var0) {
-            //  Lock l(this->mutex_m);
-            // Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            T ret = exp->Evaluate();
-            delete exp;
-            return ret;
-        }
-
-        /*!
-         * Derivative with respect to var0....var2 in order.
-         * @param var0
-         * @param var1
-         * @return numerical derivative
-         */
-        const T WRT(const ADNumber<T> &var0, const ADNumber<T> &var1) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-
-            T ret = temp->Evaluate();
-            delete temp;
-            delete exp;
-
-
-            return ret;
-        }
-
-        /*!
-         * Derivative with respect to var0....var3 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @return numerical derivative
-         */
-        const T WRT(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            T ret = exp->Evaluate();
-            delete exp;
-
-            return ret;
-        }
-
-        /*!
-         * Derivative with respect to var0....var4 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @return numerical derivative
-         */
-        const T WRT(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            T ret = temp->Evaluate();
-            delete temp;
-
-            return ret;
-        }
-
-        /*!
-         * Derivative with respect to var0....var5 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @return numerical derivative
-         */
-        const T WRT(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            T ret = exp->Evaluate();
-            delete exp;
-
-            return ret;
-        }
-
-        /*!
-         * Derivative with respect to var0....var6 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @param var5
-         * @return numerical derivative
-         */
-        const T WRT(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4,
-                const ADNumber<T> &var5) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            temp = exp->Differentiate(var5.GetID());
-            delete exp;
-            T ret = temp->Evaluate();
-            delete temp;
-
-            return ret;
-        }
-
-        /*!
-         * Derivative with respect to var0....var7 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @param var5
-         * @param var6
-         * @return numerical derivative
-         */
-        const T WRT(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4,
-                const ADNumber<T> &var5, const ADNumber<T> &var6) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            temp = exp->Differentiate(var5.GetID());
-            delete exp;
-            exp = temp->Differentiate(var6.GetID());
-            delete temp;
-            T ret = exp->Evaluate();
-            delete exp;
-
-            return ret;
-        }
-
-        /*!
-         * Derivative with respect to var0....var8 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @param var5
-         * @param var6
-         * @param var7
-         * @return numerical derivative
-         */
-        const T WRT(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4,
-                const ADNumber<T> &var5, const ADNumber<T> &var6, const ADNumber<T> &var7) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            temp = exp->Differentiate(var5.GetID());
-            delete exp;
-            exp = temp->Differentiate(var6.GetID());
-            delete temp;
-            temp = exp->Differentiate(var7.GetID());
-            delete exp;
-            T ret = temp->Evaluate();
-            delete temp;
-
-            return ret;
-        }
-
-        /*!
-         * Derivative with respect to var0....var9 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @param var5
-         * @param var6
-         * @param var7
-         * @param var8
-         * @return numerical derivative
-         */
-        const T WRT(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4,
-                const ADNumber<T> &var5, const ADNumber<T> &var6, const ADNumber<T> &var7,
-                const ADNumber<T> &var8) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            temp = exp->Differentiate(var5.GetID());
-            delete exp;
-            exp = temp->Differentiate(var6.GetID());
-            delete temp;
-            temp = exp->Differentiate(var7.GetID());
-            delete exp;
-            exp = temp->Differentiate(var8.GetID());
-            delete temp;
-            T ret = exp->Evaluate();
-            delete exp;
-
-            return ret;
-        }
-
-        /*!
-         * Derivative with respect to var0....var10 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @param var5
-         * @param var6
-         * @param var7
-         * @param var8
-         * @param var9
-         * @return numerical derivative
-         */
-        const T WRT(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4,
-                const ADNumber<T> &var5, const ADNumber<T> &var6, const ADNumber<T> &var7,
-                const ADNumber<T> &var8, const ADNumber<T> &var9) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            temp = exp->Differentiate(var5.GetID());
-            delete exp;
-            exp = temp->Differentiate(var6.GetID());
-            delete temp;
-            temp = exp->Differentiate(var7.GetID());
-            delete exp;
-            exp = temp->Differentiate(var8.GetID());
-            delete temp;
-            temp = exp->Differentiate(var9.GetID());
-            delete exp;
-            T ret = temp->Evaluate();
-            delete temp;
-
-            return ret;
-        }
-
-        /*!
-         * Derivative with respect to a vector of ADNumbers 
-         * {var0,var1...varn} in order.
-         * @param vars
-         * @return numerical derivative
-         */
-        const T WRT(const std::vector<ADNumber<T>*> &vars) {
-            //  Lock l(this->mutex_m);
-            if (this->expression_m == NULL) {
-                return T(0);
-            } else {
-                if (vars.size() == 0) {
-                    return this->GetValue();
-                }
-
-                Expression<T> *temp;
-                Expression<T> *exp = this->expression_m->Differentiate(vars.at(0)->GetID());
-
-                for (int i = 1; i < vars.size(); i++) {
-
-                    temp = exp->Differentiate(vars.at(i)->GetID());
-                    delete exp;
-                    exp = temp;
-
-                }
-                T ret = exp->Evaluate();
-                delete exp;
-
-                return ret;
-            }
-        }
-
-        /*!
-         * Error of the derivative with respect to var0....var1 in order.
-         * @param var0
-         * @return numerical derivative
-         */
-        const T WRT_Error(const ADNumber<T> &var0) {
-            //  Lock l(this->mutex_m);
-            // Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            T ret = exp->PropagatedError();
-            delete exp;
-            return ret;
-        }
-
-        /*!
-         * Error of the derivative with respect to var0....var2 in order.
-         * @param var0
-         * @param var1
-         * @return numerical derivative
-         */
-        const T WRT_Error(const ADNumber<T> &var0, const ADNumber<T> &var1) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-
-            T ret = temp->PropagatedError();
-            delete temp;
-            delete exp;
-
-
-            return ret;
-        }
-
-        /*!
-         * Error of the derivative with respect to var0....var3 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @return numerical derivative
-         */
-        const T WRT_Error(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            T ret = exp->PropagatedError();
-            delete exp;
-
-            return ret;
-        }
-
-        /*!
-         * Error of the derivative with respect to var0....var4 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @return numerical derivative
-         */
-        const T WRT_Error(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            T ret = temp->Evaluate();
-            delete temp;
-
-            return ret;
-        }
-
-        /*!
-         * Error of the derivative with respect to var0....var5 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @return numerical derivative
-         */
-        const T WRT_Error(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            T ret = exp->PropagatedError();
-            delete exp;
-
-            return ret;
-        }
-
-        /*!
-         * Error of the derivative with respect to var0....var6 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @param var5
-         * @return numerical derivative
-         */
-        const T WRT_Error(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4,
-                const ADNumber<T> &var5) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            temp = exp->Differentiate(var5.GetID());
-            delete exp;
-            T ret = temp->Evaluate();
-            delete temp;
-
-            return ret;
-        }
-
-        /*!
-         * Error of the derivative with respect to var0....var7 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @param var5
-         * @param var6
-         * @return numerical derivative
-         */
-        const T WRT_Error(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4,
-                const ADNumber<T> &var5, const ADNumber<T> &var6) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            temp = exp->Differentiate(var5.GetID());
-            delete exp;
-            exp = temp->Differentiate(var6.GetID());
-            delete temp;
-            T ret = exp->PropagatedError();
-            delete exp;
-
-            return ret;
-        }
-
-        /*!
-         * Error of the derivative with respect to var0....var8 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @param var5
-         * @param var6
-         * @param var7
-         * @return numerical derivative
-         */
-        const T WRT_Error(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4,
-                const ADNumber<T> &var5, const ADNumber<T> &var6, const ADNumber<T> &var7) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            temp = exp->Differentiate(var5.GetID());
-            delete exp;
-            exp = temp->Differentiate(var6.GetID());
-            delete temp;
-            temp = exp->Differentiate(var7.GetID());
-            delete exp;
-            T ret = temp->Evaluate();
-            delete temp;
-
-            return ret;
-        }
-
-        /*!
-         * Error of the derivative with respect to var0....var9 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @param var5
-         * @param var6
-         * @param var7
-         * @param var8
-         * @return numerical derivative
-         */
-        const T WRT_Error(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4,
-                const ADNumber<T> &var5, const ADNumber<T> &var6, const ADNumber<T> &var7,
-                const ADNumber<T> &var8) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            temp = exp->Differentiate(var5.GetID());
-            delete exp;
-            exp = temp->Differentiate(var6.GetID());
-            delete temp;
-            temp = exp->Differentiate(var7.GetID());
-            delete exp;
-            exp = temp->Differentiate(var8.GetID());
-            delete temp;
-            T ret = exp->PropagatedError();
-            delete exp;
-
-            return ret;
-        }
-
-        /*!
-         * Error of the derivative with respect to var0....var10 in order.
-         * @param var0
-         * @param var1
-         * @param var2
-         * @param var3
-         * @param var4
-         * @param var5
-         * @param var6
-         * @param var7
-         * @param var8
-         * @param var9
-         * @return numerical derivative
-         */
-        const T WRT_Error(const ADNumber<T> &var0, const ADNumber<T> &var1,
-                const ADNumber<T> &var2, const ADNumber<T> &var3, const ADNumber<T> &var4,
-                const ADNumber<T> &var5, const ADNumber<T> &var6, const ADNumber<T> &var7,
-                const ADNumber<T> &var8, const ADNumber<T> &var9) {
-            //  Lock l(this->mutex_m);
-            Expression<T> *temp;
-            Expression<T> *exp =
-                    this->expression_m->Differentiate(var0.GetID());
-
-            temp = exp->Differentiate(var1.GetID());
-            delete exp;
-            exp = temp->Differentiate(var2.GetID());
-            delete temp;
-            temp = exp->Differentiate(var3.GetID());
-            delete exp;
-            exp = temp->Differentiate(var4.GetID());
-            delete temp;
-            temp = exp->Differentiate(var5.GetID());
-            delete exp;
-            exp = temp->Differentiate(var6.GetID());
-            delete temp;
-            temp = exp->Differentiate(var7.GetID());
-            delete exp;
-            exp = temp->Differentiate(var8.GetID());
-            delete temp;
-            temp = exp->Differentiate(var9.GetID());
-            delete exp;
-            T ret = temp->Evaluate();
-            delete temp;
-
-            return ret;
-        }
-
-        /*!
-         * Error of the derivative with respect to a vector of ADNumbers 
-         * {var0,var1...varn} in order.
-         * @param vars
-         * @return numerical derivative
-         */
-        const T WRT_Error(const std::vector<ADNumber<T>*> &vars) {
-            //  Lock l(this->mutex_m);
-            if (this->expression_m == NULL) {
-                return T(0);
-            } else {
-                if (vars.size() == 0) {
-                    return this->GetValue();
-                }
-
-                Expression<T> *temp;
-                Expression<T> *exp = this->expression_m->Differentiate(vars.at(0)->GetID());
-
-                for (int i = 1; i < vars.size(); i++) {
-
-                    temp = exp->Differentiate(vars.at(i)->GetID());
-                    delete exp;
-                    exp = temp;
-
-                }
-                T ret = exp->PropagatedError();
-                delete exp;
-
-                return ret;
-            }
-        }
-
-        /*!
-         * Return the nth order derivative.
-         */
-        const T Nth(const unsigned int &order) {
-            //  Lock l(this->mutex_m);
-            if (this->expression_m == NULL) {
-                return T(0);
-            } else {
-                if (order == 0) {
-                    return this->GetValue();
-                }
-
-                Expression<T> *temp;
-                Expression<T> *exp = this->expression_m->Differentiate();
-
-                for (size_t i = 1; i < order; i++) {
-
-                    temp = exp->Differentiate();
-                    delete exp;
-                    exp = temp;
-
-                }
-                T ret = exp->Evaluate();
-                delete exp;
-
-                return ret;
-            }
-
-        }
-
-        /*!
-         * Return the nth order error of the derivative.
-         */
-        const T NthError(const unsigned int &order) {
-            //  Lock l(this->mutex_m);
-            if (this->expression_m == NULL) {
-                return T(0);
-            } else {
-                if (order == 0) {
-                    return this->expression_m->PropagatedError();
-                }
-
-                Expression<T> *temp;
-                Expression<T> *exp = this->expression_m->Differentiate();
-
-                for (size_t i = 1; i < order; i++) {
-
-                    temp = exp->Differentiate();
-                    delete exp;
-                    exp = temp;
-
-                }
-                T ret = exp->PropagatedError();
-                delete exp;
-
-                return ret;
-            }
-
-        }
-
-        /*!
-         * Return the nth order partial derivative.
-         */
-        const T NthPartial(const ADNumber<T> &wrt, const unsigned int &order) {
-            //  Lock l(this->mutex_m);
-            if (!this->expression_m) {
-                return T(0);
-            } else {
-                if (order == 0) {
-                    return this->GetValue();
-                }
-
-                if (order == 1) {
-                    return this->expression_m->EvaluateDerivative(wrt.GetID());
-                }
-
-
-                Expression<T> *temp;
-                Expression<T> *exp = this->expression_m->Differentiate(wrt.GetID());
-
-
-                if (order == 1) {
-                    T ret = exp->Evaluate();
-                    delete exp;
-
-                    return ret;
-                }
-
-
-                size_t i;
-                for (i = 1; i < order; i++) {
-
-                    temp = exp->Differentiate(wrt.GetID());
-                    delete exp;
-                    exp = temp;
-
-                }
-                T ret = exp->Evaluate();
-                delete exp;
-
-                return ret;
-            }
-
-        }
-
-        /*!
-         * Return the nth order error of the partial derivative.
-         */
-        const T NthPartialError(const ADNumber<T> &wrt, unsigned int order) {
-            //  Lock l(this->mutex_m);
-            if (this->expression_m == NULL) {
-                return T(0);
-            } else {
-                if (order == 0) {
-                    return this->NthError(0);
-                }
-
-                Expression<T> *temp;
-                Expression<T> *exp = this->expression_m->Differentiate(wrt.GetID());
-
-                for (int i = 1; i < order; i++) {
-
-                    temp = exp->Differentiate(wrt.GetID());
-                    delete exp;
-                    exp = temp;
-
-                }
-                T ret = exp->PropagatedError();
-                delete exp;
-
-                return ret;
-            }
-
-        }
-
-        /*!
-         * Returns sqrt(sum a = A,B { (df/da)^2*u(a)^2}), where u(a) is 
-         * round error.
-         * 
-         **/
-        const T GetUncertainty() {
-            //  Lock l(this->mutex_m);
-            std::vector<uint32_t> vars;
-            this->expression_m->VariableIds(vars);
-
-
-            T temp = T(0);
-            // T squared_epsilon = std::numeric_limits<T>::epsilon() * std::numeric_limits<T>::epsilon();
-            T dif;
-            for (size_t i = 0; i < vars.size(); i++) {
-                Expression<T> *exp =
-                        this->expression_m->Differentiate(vars.at(i));
-                dif = exp->Evaluate();
-                temp += dif * dif; //*squared_epsilon;
-                delete exp;
-            }
-
-            return std::sqrt(temp);
-
-        }
-
-
-
-        //        
-        //
-        //        /*!
-        //         * returns the gradient.
-        //         * 
-        //         * Harris, J and Stocker, H (1998). 
-        //         * "Handbook of Mathematics and Computational Science", ''Springer'', 
-        //         * page 513.
-        //         * @return 
-        //         */
-        //        const T GetAbsoluteError() {
-        //            return this->GetUncertainty();
-        //        }
-        //
-        //        /*!
-        //         * returns the gradient/value
-        //         * Harris, J and Stocker, H (1998). 
-        //         * "Handbook of Mathematics and Computational Science", ''Springer'', 
-        //         * page 513.
-        //         * @return 
-        //         */
-        //        const T GetRelativeError() {
-        //            return GetAbsoluteError() / this->GetValue();
-        //        }
-        //
-        //        /*!
-        //         * returns the gradient/value * 100
-        //         * Harris, J and Stocker, H (1998). 
-        //         * "Handbook of Mathematics and Computational Science", ''Springer'', 
-        //         * page 513.
-        //         * @return 
-        //         */
-        //        const T GetPercentError() {
-        //            return (GetAbsoluteError() / this->GetValue())*T(100);
-        //        }
-        //
-
-        /*!
-         * Return the nth order derivative as a std::string.
-         */
-        const std::string NthToString(const unsigned int &order, bool latex = false) {
-            if (this->expression_ == NULL) {
-                return "NA";
-            } else {
-                if (order == 0) {
-                    if (latex) {
-                        return this->expression_m->ToLatexString();
-                    } else {
-                        return this->expression_m->ToString();
-                    }
-                }
-
-                Expression<T> *temp;
-                Expression<T> *exp = this->expression_m->Differentiate();
-
-                for (int i = 1; i < order; i++) {
-                    temp = exp->Differentiate();
-                    delete exp;
-                    exp = temp;
-
-                }
-
-                std::string ret; // = exp->ToString();
-                if (latex) {
-                    ret = exp->ToLatexString();
-                } else {
-                    ret = exp->ToString();
-                }
-                delete exp;
-
-                return ret;
-            }
-
-
-        }
-
-        /*!
-         * Return the nth order partial derivative as a std::string.
-         */
-        const std::string NthToCPPFunction(std::string name, const unsigned int &order) {
-            //  Lock l(this->mutex_m);
-            // std::cout << __func__ << ": Not yet Implemented!\n";
-            //return "Not yet Implemented!\n";
-            std::vector<std::string> args;
-
-            std::string ret; // = this->expression_->ToString(args);
-
-
-            if (this->expression_m == NULL) {
-                return "NA";
-            } else {
-                if (order == 0) {
-                    ret = this->expression_m->ToString(args);
-                } else {
-
-                    Expression<T> *temp;
-                    Expression<T> *exp = this->expression_m->Differentiate();
-
-                    for (int i = 1; i < order; i++) {
-                        temp = exp->Differentiate();
-                        delete exp;
-                        exp = temp;
-
-                    }
-
-                    ret = exp->ToString(args);
-                    delete exp;
-                }
-                std::stringstream ss;
-
-                ss << "/*Machine generated by ADNumber::NthToCPPFunction*/\n";
-                //                ss << "#ifdef AD_REAL\n";
-                //                ss << "#undef AD_REAL\n";
-                //                ss << "#endif\n\n";
-                //                ss << "#define AD_REAL double\n\n\n";
-
-
-
-                ss << "/*!\n"
-                        " * Function " << name << ".\n */\n";
-
-                ss << "template<class T> \nT " << name << "(";
-
-                if (args.size() > 0) {
-                    if (args.size() > 1) {
-
-                        for (size_t i = 0; i < args.size() - 1; i++) {
-                            ss << "T " << args.at(i) << ",";
-                        }
-                        ss << "T " << args.at(args.size() - 1) << "){\n";
-                    } else {
-                        ss << "T " << args.at(0) << "){\n";
-                    }
-                } else {
-                    ss << "){";
-                }
-
-                ss << "\nT ret =" << ret << ";\n\nreturn ret;\n}";
-
-                //   ss << "\n\n#undef AD_REAL\n";
-
-
-
-                return ss.str();
-            }
-
-        }
-
-        /*!
-         * Derivative with respect to a vector of ADNumbers 
-         * {var0,var1...varn} in order.
-         * @param vars
-         * @return numerical derivative
-         */
-        const std::string WRT_ToCPPFunction(std::string name, const std::vector<ADNumber<T> > &vars) {
-            //  Lock l(this->mutex_m);
-            // std::cout << __func__ << ": Not yet Implemented!\n";
-            //return "Not yet Implemented!\n";
-            std::vector<std::string> args;
-
-            std::string ret; // = this->expression_->ToString(args);
-
-
-            if (this->expression_m == NULL) {
-                return "";
-            } else {
-                //                if (vars.size() == 0) {
-                //                    ret = this->expression_m 
-                //                }
-
-                Expression<T> *temp;
-                Expression<T> *exp = this->expression_m->Differentiate(vars.at(0).GetID());
-
-                for (int i = 1; i < vars.size(); i++) {
-
-                    temp = exp->Differentiate(vars.at(i).GetID());
-                    delete exp;
-                    exp = temp;
-
-                }
-                ret = exp->ToString();
-
-                delete exp;
-
-            }
-
-            std::stringstream ss;
-
-            ss << "/*Machine generated by ADNumber::NthToCPPFunction*/\n";
-            //                ss << "#ifdef AD_REAL\n";
-            //                ss << "#undef AD_REAL\n";
-            //                ss << "#endif\n\n";
-            //                ss << "#define AD_REAL double\n\n\n";
-
-
-
-            ss << "/*!\n"
-                    " * Function " << name << ".\n */\n";
-
-            ss << "template<class T> \nT " << name << "(";
-
-            if (args.size() > 0) {
-                if (args.size() > 1) {
-
-                    for (size_t i = 0; i < args.size() - 1; i++) {
-                        ss << "T " << args.at(i) << ",";
-                    }
-                    ss << "T " << args.at(args.size() - 1) << "){\n";
-                } else {
-                    ss << "T " << args.at(0) << "){\n";
-                }
-            } else {
-                ss << "){";
-            }
-
-            ss << "\nT ret =" << ret << ";\n\nreturn ret;\n}";
-
-            //   ss << "\n\n#undef AD_REAL\n";
-
-
-
-            return ss.str();
-
-
-
-        }
-
-        /*!
-         * Return the nth order partial derivative as a std::string.
-         */
-        const std::string NthPartialToCPPFunction(std::string name, const ADNumber<T> &wrt, const unsigned int &order) {
-            //  Lock l(this->mutex_m);
-            // std::cout << __func__ << ": Not yet Implemented!\n";
-            //return "Not yet Implemented!\n";
-            std::vector<std::string> args;
-
-            std::string ret; // = this->expression_->ToString(args);
-
-            if (this->expression_m == NULL) {
-                return "NA";
-            } else {
-                if (order == 0) {
-                    ret = this->expression_m->ToString(args);
-                } else {
-
-                    Expression<T> *temp;
-                    Expression<T> *exp = this->expression_m->Differentiate(wrt.GetID());
-
-                    for (int i = 1; i < order; i++) {
-                        temp = exp->Differentiate(wrt.GetID());
-                        delete exp;
-                        exp = temp;
-
-                    }
-
-
-
-                    ret = exp->ToString(args);
-                    delete exp;
-
-                }
-                std::stringstream ss;
-
-                ss << "/*Machine generated by ADNumber:NthPartialToCFuncton*/\n";
-
-
-
-
-                ss << "/*!\n"
-                        " * Function " << name << ".\n */\n";
-
-                ss << "template<class T> \nT " << name << "(";
-
-                if (args.size() > 0) {
-                    if (args.size() > 1) {
-
-                        for (size_t i = 0; i < args.size() - 1; i++) {
-                            ss << "T " << args.at(i) << ",";
-                        }
-                        ss << "T " << args.at(args.size() - 1) << "){\n";
-                    } else {
-                        ss << "T " << args.at(0) << "){\n";
-                    }
-                } else {
-                    ss << "){";
-                }
-
-                ss << "\nT ret =" << ret << ";\n\nreturn ret;\n}";
-
-
-
-
-
-                return ss.str();
-            }
-
-        }
-
-        /*!
-         * Return the nth order partial derivative as a std::string.
-         */
-        const std::string NthPartialToString(const ADNumber<T> &wrt, const unsigned int &order, bool latex = false) {
-            //  Lock l(this->mutex_m);
-            // std::cout << __func__ << ": Not yet Implemented!\n";
-            //return "Not yet Implemented!\n";
-            if (this->expression_m == NULL) {
-                return "NA";
-            } else {
-                if (order == 0) {
-
-                    if (latex) {
-                        return this->expression_m->ToLatexString();
-                    } else {
-                        return this->expression_m->ToString();
-                    }
-                }
-
-                Expression<T> *temp;
-                Expression<T> *exp = this->expression_m->Differentiate(wrt.GetID());
-
-                for (int i = 1; i < order; i++) {
-                    temp = exp->Differentiate(wrt.GetID());
-                    delete exp;
-                    exp = temp;
-
-                }
-                std::string ret;
-                if (latex) {
-                    ret = exp->ToLatexString();
-                } else {
-                    ret = exp->ToString();
-                }
-
-                delete exp;
-
-                return ret;
-            }
-
+            ADDEBUG
+            return value;
         }
 
         /*!
@@ -5202,65 +2805,816 @@ namespace ad {
          * @return 
          */
         const std::string GetName() const {
-            //  Lock l(this->mutex_m);
-            return this->variableName_;
+            if (name == "") {
+                std::stringstream ss;
+                ss << "x" << GetID();
+                return ss.str();
+            }
+            return name;
         }
 
         void SetName(const std::string &name) {
-            //  Lock l(this->mutex_m);
-            this->variableName_ = name;
+            ADDEBUG
+            expression->SetName(name);
+            this->name = name;
+        }
+
+        void SetValue(const T &val) {
+            value = val;
+            expression->SetValue(value);
         }
 
         /*
          * Return the unique identifier for this ADNumber.
          */
         const uint32_t GetID() const {
-            //  Lock l(this->mutex_m);
-            return this->id_m;
+            ADDEBUG
+            return id;
         }
 
+        /**
+         * Derivative with respect to var0....var1 in order.
+         *
+         * @param var1
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1) {
+            return ad::Derivative(*this, var1, 1);
+        }
 
-        //expression tree, used for reverse mode calculation.
-        Expression<T> *expression_m;
+        /**
+         * Derivative with respect to var0....var2 in order.
+         *
+         * @param var1
+         * @param var2
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            //std::cout << ret.expression->ToString(true) << std::flush;
+            ADNumber<T> ret2 = ad::Derivative(ret, var2, 1);
+            //std::cout<<ad::Evaluate(ret.expression)<<"\n\n\n\n\n\n";
+            //std::cout << ret.expression->ToString()<<"\n\n\n\n\n\n" << std::flush;
 
-    protected:
-        //computed value.
-        T value_m;
+            return ret2;
+        }
 
-        //forward computed derivative.(direct)
-        T fderivative_m;
+        /**
+         * Derivative with respect to var0....var3 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            return ad::Derivative(ret, var3, 1);
+        }
 
+        /**
+         * Derivative with respect to var0....var4 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            return ad::Derivative(ret, var4, 1);
+        }
 
-    private:
-        //initialize this expression.
+        /**
+         * Derivative with respect to var0....var5 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            return ad::Derivative(ret, var5, 1);
+        }
 
-        void Initialize() {
+        /**
+         * Derivative with respect to var0....var6 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            return ad::Derivative(ret, var6, 1);
+        }
 
-            this->expression_m->SetValue(this->value_m);
-            this->expression_m->SetId(this->id_m);
-            this->expression_m->SetOp(VARIABLE);
+        /**
+         * Derivative with respect to var0....var7 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            return ad::Derivative(ret, var7, 1);
+        }
 
+        /**
+         * Derivative with respect to var0....var8 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            return ad::Derivative(ret, var8, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var9 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            return ad::Derivative(ret, var9, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var10 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @param var10
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9,
+                const ADNumber<T> &var10) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            ret = ad::Derivative(ret, var9, 1);
+            return ad::Derivative(ret, var10, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var11 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @param var10
+         * @param var11
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9,
+                const ADNumber<T> &var10,
+                const ADNumber<T> &var11) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            ret = ad::Derivative(ret, var9, 1);
+            ret = ad::Derivative(ret, var10, 1);
+            return ad::Derivative(ret, var11, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var12 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @param var10
+         * @param var11
+         * @param var12
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9,
+                const ADNumber<T> &var10,
+                const ADNumber<T> &var11,
+                const ADNumber<T> &var12) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            ret = ad::Derivative(ret, var9, 1);
+            ret = ad::Derivative(ret, var10, 1);
+            ret = ad::Derivative(ret, var11, 1);
+            return ad::Derivative(ret, var12, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var13 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @param var10
+         * @param var11
+         * @param var12
+         * @param var13
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9,
+                const ADNumber<T> &var10,
+                const ADNumber<T> &var11,
+                const ADNumber<T> &var12,
+                const ADNumber<T> &var13) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            ret = ad::Derivative(ret, var9, 1);
+            ret = ad::Derivative(ret, var10, 1);
+            ret = ad::Derivative(ret, var11, 1);
+            ret = ad::Derivative(ret, var12, 1);
+            return ad::Derivative(ret, var13, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var14 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @param var10
+         * @param var11
+         * @param var12
+         * @param var13
+         * @param var14
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9,
+                const ADNumber<T> &var10,
+                const ADNumber<T> &var11,
+                const ADNumber<T> &var12,
+                const ADNumber<T> &var13,
+                const ADNumber<T> &var14) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            ret = ad::Derivative(ret, var9, 1);
+            ret = ad::Derivative(ret, var10, 1);
+            ret = ad::Derivative(ret, var11, 1);
+            ret = ad::Derivative(ret, var12, 1);
+            ret = ad::Derivative(ret, var13, 1);
+            return ad::Derivative(ret, var14, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var15 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @param var10
+         * @param var11
+         * @param var12
+         * @param var13
+         * @param var14
+         * @param var15
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9,
+                const ADNumber<T> &var10,
+                const ADNumber<T> &var11,
+                const ADNumber<T> &var12,
+                const ADNumber<T> &var13,
+                const ADNumber<T> &var14,
+                const ADNumber<T> &var15) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            ret = ad::Derivative(ret, var9, 1);
+            ret = ad::Derivative(ret, var10, 1);
+            ret = ad::Derivative(ret, var11, 1);
+            ret = ad::Derivative(ret, var12, 1);
+            ret = ad::Derivative(ret, var13, 1);
+            ret = ad::Derivative(ret, var14, 1);
+            return ad::Derivative(ret, var15, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var16 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @param var10
+         * @param var11
+         * @param var12
+         * @param var13
+         * @param var14
+         * @param var15
+         * @param var16
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9,
+                const ADNumber<T> &var10,
+                const ADNumber<T> &var11,
+                const ADNumber<T> &var12,
+                const ADNumber<T> &var13,
+                const ADNumber<T> &var14,
+                const ADNumber<T> &var15,
+                const ADNumber<T> &var16) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            ret = ad::Derivative(ret, var9, 1);
+            ret = ad::Derivative(ret, var10, 1);
+            ret = ad::Derivative(ret, var11, 1);
+            ret = ad::Derivative(ret, var12, 1);
+            ret = ad::Derivative(ret, var13, 1);
+            ret = ad::Derivative(ret, var14, 1);
+            ret = ad::Derivative(ret, var15, 1);
+            return ad::Derivative(ret, var16, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var17 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @param var10
+         * @param var11
+         * @param var12
+         * @param var13
+         * @param var14
+         * @param var15
+         * @param var16
+         * @param var17
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9,
+                const ADNumber<T> &var10,
+                const ADNumber<T> &var11,
+                const ADNumber<T> &var12,
+                const ADNumber<T> &var13,
+                const ADNumber<T> &var14,
+                const ADNumber<T> &var15,
+                const ADNumber<T> &var16,
+                const ADNumber<T> &var17) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            ret = ad::Derivative(ret, var9, 1);
+            ret = ad::Derivative(ret, var10, 1);
+            ret = ad::Derivative(ret, var11, 1);
+            ret = ad::Derivative(ret, var12, 1);
+            ret = ad::Derivative(ret, var13, 1);
+            ret = ad::Derivative(ret, var14, 1);
+            ret = ad::Derivative(ret, var15, 1);
+            ret = ad::Derivative(ret, var16, 1);
+            return ad::Derivative(ret, var17, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var18 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @param var10
+         * @param var11
+         * @param var12
+         * @param var13
+         * @param var14
+         * @param var15
+         * @param var16
+         * @param var17
+         * @param var18
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9,
+                const ADNumber<T> &var10,
+                const ADNumber<T> &var11,
+                const ADNumber<T> &var12,
+                const ADNumber<T> &var13,
+                const ADNumber<T> &var14,
+                const ADNumber<T> &var15,
+                const ADNumber<T> &var16,
+                const ADNumber<T> &var17,
+                const ADNumber<T> &var18) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            ret = ad::Derivative(ret, var9, 1);
+            ret = ad::Derivative(ret, var10, 1);
+            ret = ad::Derivative(ret, var11, 1);
+            ret = ad::Derivative(ret, var12, 1);
+            ret = ad::Derivative(ret, var13, 1);
+            ret = ad::Derivative(ret, var14, 1);
+            ret = ad::Derivative(ret, var15, 1);
+            ret = ad::Derivative(ret, var16, 1);
+            ret = ad::Derivative(ret, var17, 1);
+            return ad::Derivative(ret, var18, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var19 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @param var10
+         * @param var11
+         * @param var12
+         * @param var13
+         * @param var14
+         * @param var15
+         * @param var16
+         * @param var17
+         * @param var18
+         * @param var19
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9,
+                const ADNumber<T> &var10,
+                const ADNumber<T> &var11,
+                const ADNumber<T> &var12,
+                const ADNumber<T> &var13,
+                const ADNumber<T> &var14,
+                const ADNumber<T> &var15,
+                const ADNumber<T> &var16,
+                const ADNumber<T> &var17,
+                const ADNumber<T> &var18,
+                const ADNumber<T> &var19) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            ret = ad::Derivative(ret, var9, 1);
+            ret = ad::Derivative(ret, var10, 1);
+            ret = ad::Derivative(ret, var11, 1);
+            ret = ad::Derivative(ret, var12, 1);
+            ret = ad::Derivative(ret, var13, 1);
+            ret = ad::Derivative(ret, var14, 1);
+            ret = ad::Derivative(ret, var15, 1);
+            ret = ad::Derivative(ret, var16, 1);
+            ret = ad::Derivative(ret, var17, 1);
+            ret = ad::Derivative(ret, var18, 1);
+            return ad::Derivative(ret, var19, 1);
+        }
+
+        /**
+         * Derivative with respect to var0....var20 in order.
+         *
+         * @param var1
+         * @param var2
+         * @param var3
+         * @param var4
+         * @param var5
+         * @param var6
+         * @param var7
+         * @param var8
+         * @param var9
+         * @param var10
+         * @param var11
+         * @param var12
+         * @param var13
+         * @param var14
+         * @param var15
+         * @param var16
+         * @param var17
+         * @param var18
+         * @param var19
+         * @param var20
+         * @return  derivative
+         */
+        const ADNumber<T> WRT(const ADNumber<T> &var1,
+                const ADNumber<T> &var2,
+                const ADNumber<T> &var3,
+                const ADNumber<T> &var4,
+                const ADNumber<T> &var5,
+                const ADNumber<T> &var6,
+                const ADNumber<T> &var7,
+                const ADNumber<T> &var8,
+                const ADNumber<T> &var9,
+                const ADNumber<T> &var10,
+                const ADNumber<T> &var11,
+                const ADNumber<T> &var12,
+                const ADNumber<T> &var13,
+                const ADNumber<T> &var14,
+                const ADNumber<T> &var15,
+                const ADNumber<T> &var16,
+                const ADNumber<T> &var17,
+                const ADNumber<T> &var18,
+                const ADNumber<T> &var19,
+                const ADNumber<T> &var20) {
+            ADNumber<T> ret = ad::Derivative(*this, var1, 1);
+            ret = ad::Derivative(ret, var2, 1);
+            ret = ad::Derivative(ret, var3, 1);
+            ret = ad::Derivative(ret, var4, 1);
+            ret = ad::Derivative(ret, var5, 1);
+            ret = ad::Derivative(ret, var6, 1);
+            ret = ad::Derivative(ret, var7, 1);
+            ret = ad::Derivative(ret, var8, 1);
+            ret = ad::Derivative(ret, var9, 1);
+            ret = ad::Derivative(ret, var10, 1);
+            ret = ad::Derivative(ret, var11, 1);
+            ret = ad::Derivative(ret, var12, 1);
+            ret = ad::Derivative(ret, var13, 1);
+            ret = ad::Derivative(ret, var14, 1);
+            ret = ad::Derivative(ret, var15, 1);
+            ret = ad::Derivative(ret, var16, 1);
+            ret = ad::Derivative(ret, var17, 1);
+            ret = ad::Derivative(ret, var18, 1);
+            ret = ad::Derivative(ret, var19, 1);
+            return ad::Derivative(ret, var20, 1);
+        }
+
+#ifdef ADNUMBER_C11
+
+        const ADNumber<T> operator ""d(ADNumber<T> &wrt) {
 
         }
 
+#endif
 
-        //reverse computed derivative.holds the expression tree calculation to
-        //avoid repeated evaluations of the expression tree.(adjoint)
-        //T rderivative_;
-
-        //reverse flag
-        bool reverse_computed;
-
-        //Default is x
-        std::string variableName_;
-
-        //unique id
-        uint32_t id_m;
-
-
-
-
-    public:
         //Friends
         // relational operators
         template<class TT> friend const int operator==(const ADNumber<TT>& lhs, const ADNumber<TT>& rhs);
@@ -5303,19 +3657,22 @@ namespace ad {
         template<class TT> friend const ADNumber<TT> operator+(const ADNumber<TT>& lhs, TT rhs);
         template<class TT> friend const ADNumber<TT> operator*(const ADNumber<TT>& lhs, TT rhs);
 
+    private:
+
+        void Initialize() {
+
+            expression->take();
+            expression->SetLeft(NULL);
+            expression->SetRight(NULL);
+            expression->SetValue(value);
+            expression->SetId(id);
+            expression->SetOp(VARIABLE);
+            // expression->SetName(GetName());
+
+
+        }
 
     };
-
-    template<class T>
-    ADNumber<T> Integrate(const ADNumber<T> &f, const ADNumber<T> &wrt) {
-        ADNumber<T> ret;
-        Expression<T>* tmp = f.expression_m->Integral(wrt.GetID());
-        Expression<T>* forward = tmp->Differentiate();
-        ret.Reset(f.expression_m->Evaluate(), forward->Evaluate());
-        ret.expression_m = tmp;
-        delete forward;
-        return ret;
-    }
 
     /*!
      * Equal to comparison operator.
@@ -5543,12 +3900,13 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator-(const ADNumber<T>& lhs, const ADNumber<T>& rhs) {
-        ADNumber<T > ret(T(lhs.GetValue() - rhs.GetValue()),
-                T(lhs.Forward() - rhs.Forward()));
+        ADNumber<T > ret((lhs.GetValue() - rhs.GetValue()));
 
-        ret.expression_m->SetOp(MINUS);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(MINUS);
+        ret.expression->SetLeft(lhs.expression);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5561,12 +3919,13 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator+(const ADNumber<T>& lhs, const ADNumber<T>& rhs) {
-        ADNumber<T> ret(T(lhs.GetValue() + rhs.GetValue()),
-                T(lhs.Forward() + rhs.Forward()));
+        ADNumber<T> ret((lhs.GetValue() + rhs.GetValue()));
 
-        ret.expression_m->SetOp(PLUS);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(PLUS);
+        ret.expression->SetLeft(lhs.expression);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5579,13 +3938,13 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator/(const ADNumber<T>& lhs, const ADNumber<T>& rhs) {
-        ADNumber<T > ret(T(lhs.GetValue() / rhs.GetValue()),
-                T((rhs.GetValue() * lhs.Forward() - lhs.GetValue() * rhs.Forward())
-                / (rhs.GetValue() * rhs.GetValue())));
+        ADNumber<T > ret((lhs.GetValue() / rhs.GetValue()));
 
-        ret.expression_m->SetOp(DIVIDE);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(DIVIDE);
+        ret.expression->SetLeft(lhs.expression);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5598,12 +3957,13 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator*(const ADNumber<T>& lhs, const ADNumber<T>& rhs) {
-        ADNumber<T > ret(lhs.GetName(), T(lhs.GetValue() * rhs.GetValue()),
-                T(lhs.GetValue() * rhs.Forward() + rhs.GetValue() * lhs.Forward()));
+        ADNumber<T > ret((lhs.GetValue() * rhs.GetValue()));
 
-        ret.expression_m->SetOp(MULTIPLY);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(MULTIPLY);
+        ret.expression->SetLeft(lhs.expression);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5616,16 +3976,17 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator-(T lhs, const ADNumber<T>& rhs) {
-        ADNumber<T > ret(T(lhs - rhs.GetValue()),
-                T(0) - T(rhs.Forward()));
+        ADNumber<T > ret((lhs - rhs.GetValue()));
 
-        Expression<T> *exp = new Expression<T > ();
+        Expression<T> *exp = NEW_EXPRESSION(T) ();
         exp->SetValue(lhs);
         exp->SetOp(CONSTANT);
 
-        ret.expression_m->SetOp(MINUS);
-        ret.expression_m->SetLeft(exp);
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(MINUS);
+        ret.expression->SetLeft(exp);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5638,16 +3999,17 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator+(T lhs, const ADNumber<T>& rhs) {
-        ADNumber<T > ret(T(lhs + rhs.GetValue()),
-                T(rhs.Forward()));
+        ADNumber<T > ret((lhs + rhs.GetValue()));
 
-        Expression<T> *exp = new Expression<T > ();
+        Expression<T> *exp = NEW_EXPRESSION(T) ();
         exp->SetValue(lhs);
         exp->SetOp(CONSTANT);
 
-        ret.expression_m->SetOp(PLUS);
-        ret.expression_m->SetLeft(exp);
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(PLUS);
+        ret.expression->SetLeft(exp);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5660,17 +4022,17 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator/(T lhs, const ADNumber<T>& rhs) {
-        ADNumber<T > ret(T(lhs / rhs.GetValue()),
-                T((rhs.GetValue() * 0 - lhs * rhs.Forward()) /
-                (rhs.GetValue() * rhs.GetValue())));
+        ADNumber<T > ret((lhs / rhs.GetValue()));
 
-        Expression<T> *exp = new Expression<T > ();
+        Expression<T> *exp = NEW_EXPRESSION(T) ();
         exp->SetValue(lhs);
         exp->SetOp(CONSTANT);
 
-        ret.expression_m->SetOp(DIVIDE);
-        ret.expression_m->SetLeft(exp);
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(DIVIDE);
+        ret.expression->SetLeft(exp);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
 
@@ -5684,16 +4046,18 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator*(T lhs, const ADNumber<T>& rhs) {
-        ADNumber<T > ret(T(lhs * rhs.GetValue()),
-                T(lhs * rhs.Forward() + rhs.GetValue() * T(0)));
+        ADNumber<T > ret((lhs * rhs.GetValue()));
 
-        Expression<T> *exp = new Expression<T > ();
+        Expression<T> *exp = NEW_EXPRESSION(T) ();
         exp->SetValue(lhs);
         exp->SetOp(CONSTANT);
 
-        ret.expression_m->SetOp(MULTIPLY);
-        ret.expression_m->SetLeft(exp);
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(MULTIPLY);
+        ret.expression->SetLeft(exp);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
+
 
         return ret;
     }
@@ -5706,16 +4070,17 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator-(const ADNumber<T>& lhs, T rhs) {
-        ADNumber<T > ret(T(lhs.GetValue() - rhs),
-                T(lhs.Forward()));
+        ADNumber<T > ret((lhs.GetValue() - rhs));
 
-        Expression<T> *exp = new Expression<T > ();
+        Expression<T> *exp = NEW_EXPRESSION(T) ();
         exp->SetValue(rhs);
         exp->SetOp(CONSTANT);
 
-        ret.expression_m->SetOp(MINUS);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(exp);
+        ret.expression->SetOp(MINUS);
+        ret.expression->SetLeft(lhs.expression);
+        ret.expression->SetRight(exp);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5728,16 +4093,17 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator+(const ADNumber<T>& lhs, T rhs) {
-        ADNumber<T> ret(T(lhs.GetValue() + rhs),
-                T(lhs.Forward()));
+        ADNumber<T> ret((lhs.GetValue() + rhs));
 
-        Expression<T> *exp = new Expression<T > ();
+        Expression<T> *exp = NEW_EXPRESSION(T) ();
         exp->SetValue(rhs);
         exp->SetOp(CONSTANT);
 
-        ret.expression_m->SetOp(PLUS);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(exp);
+        ret.expression->SetOp(PLUS);
+        ret.expression->SetLeft(lhs.expression);
+        ret.expression->SetRight(exp);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5750,16 +4116,17 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator/(const ADNumber<T>& lhs, T rhs) {
-        ADNumber<T > ret(T(lhs.GetValue() / rhs),
-                T((rhs * lhs.Forward() - lhs.GetValue() * 0) / (rhs * rhs)));
+        ADNumber<T > ret((lhs.GetValue() / rhs));
 
-        Expression<T> *exp = new Expression<T > ();
+        Expression<T> *exp = NEW_EXPRESSION(T) ();
         exp->SetValue(rhs);
         exp->SetOp(CONSTANT);
 
-        ret.expression_m->SetOp(DIVIDE);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(exp);
+        ret.expression->SetOp(DIVIDE);
+        ret.expression->SetLeft(lhs.expression);
+        ret.expression->SetRight(exp);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5772,28 +4139,32 @@ namespace ad {
      * @return 
      */
     template<class T> const ADNumber<T> operator*(const ADNumber<T>& lhs, T rhs) {
-        ADNumber<T > ret(T(lhs.GetValue() * rhs),
-                T(lhs.GetValue() * 0 + rhs * lhs.Forward()));
+        ADNumber<T > ret((lhs.GetValue() * rhs));
 
-        Expression<T> *exp = new Expression<T > ();
+        Expression<T> *exp = NEW_EXPRESSION(T) ();
         exp->SetValue(rhs);
         exp->SetOp(CONSTANT);
 
-        ret.expression_m->SetOp(MULTIPLY);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(exp);
+        ret.expression->SetOp(MULTIPLY);
+        ret.expression->SetLeft(lhs.expression);
+        ret.expression->SetRight(exp);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
 
-    template<class T>
+    template<class T >
     std::ostream & operator<<(std::ostream &out, ADNumber<T> const &t) {
         out << t.GetValue();
         return out;
     }
 
 
-} //ad
+
+
+}
+
 namespace std {
 
     //Math Overloads
@@ -5804,12 +4175,13 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> atan(const ad::ADNumber<T> &val) {
-        ad::ADNumber<T> ret(atan(val.GetValue()),
-                T(1.0) / (T(1.0) + pow(val.GetValue(), T(2))));
+    template<class T> const ad::ADNumber<T> atan(const ad::ADNumber<T> &val) {
+        ad::ADNumber<T> ret(atan(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::ATAN);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::ATAN);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5820,17 +4192,18 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> atan2(const ad::ADNumber<T> &lhs, const ad::ADNumber<T> &rhs) {
+    template<class T> const ad::ADNumber<T> atan2(const ad::ADNumber<T> &lhs, const ad::ADNumber<T> &rhs) {
 
         T x = lhs.GetValue();
         T y = rhs.GetValue();
         T temp = x * x + y*y;
-        ad::ADNumber<T> ret(atan2(x, y),
-                (/*T(-1.0) * x*/y) / temp);
+        ad::ADNumber<T> ret(atan2(x, y));
 
-        ret.expression_m->SetOp(ad::ATAN2);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(ad::ATAN2);
+        ret.expression->SetLeft(lhs.expression);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5842,23 +4215,24 @@ namespace std {
      * @param rhs
      * @return 
      */
-    template<class T> ad::ADNumber<T> atan2(T lhs, const ad::ADNumber<T> &rhs) {
+    template<class T> const ad::ADNumber<T> atan2(T lhs, const ad::ADNumber<T> &rhs) {
 
 
         T x = lhs;
         T y = rhs.GetValue();
         T temp = x * x + y*y;
 
-        ad::ADNumber<T> ret(atan2(x, y),
-                (/*T(-1.0) * x*/y) / temp);
+        ad::ADNumber<T> ret(atan2(x, y));
 
         ad::Expression<T> *exp = new ad::Expression<T > ();
         exp->SetValue(lhs);
         exp->SetOp(ad::CONSTANT);
 
-        ret.expression_m->SetOp(ad::ATAN2);
-        ret.expression_m->SetLeft(exp);
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(ad::ATAN2);
+        ret.expression->SetLeft(exp);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5870,21 +4244,22 @@ namespace std {
      * @param rhs
      * @return 
      */
-    template<class T> ad::ADNumber<T> atan2(const ad::ADNumber<T> &lhs, T rhs) {
+    template<class T> const ad::ADNumber<T> atan2(const ad::ADNumber<T> &lhs, T rhs) {
 
         T x = lhs.GetValue();
         T y = rhs;
         T temp = x * x + y*y;
-        ad::ADNumber<T> ret(atan2(x, y),
-                y / temp);
+        ad::ADNumber<T> ret(atan2(x, y));
 
         ad::Expression<T> *exp = new ad::Expression<T > ();
         exp->SetValue(rhs);
         exp->SetOp(ad::CONSTANT);
 
-        ret.expression_m->SetOp(ad::ATAN2);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(exp);
+        ret.expression->SetOp(ad::ATAN2);
+        ret.expression->SetLeft(lhs.expression);
+        ret.expression->SetRight(exp);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5895,12 +4270,13 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> cos(const ad::ADNumber<T> &val) {
-        ad::ADNumber<T> ret(cos(val.GetValue()),
-                T(-1) * sin(val.GetValue()));
+    template<class T> const ad::ADNumber<T> cos(const ad::ADNumber<T> &val) {
+        ad::ADNumber<T> ret(cos(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::COS);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::COS);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5911,17 +4287,18 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> exp(const ad::ADNumber<T> &val) {
-        ad::ADNumber<T> ret(exp(val.GetValue()),
-                exp(val.GetValue()));
+    template<class T> const ad::ADNumber<T> exp(const ad::ADNumber<T> &val) {
+        ad::ADNumber<T> ret(exp(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::EXP);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::EXP);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
 
-    template<class T> ad::ADNumber<T> mfexp(const ad::ADNumber<T> & x) {
+    template<class T> const ad::ADNumber<T> mfexp(const ad::ADNumber<T> & x) {
         T b = T(60);
         if (x <= b && x >= T(-1) * b) {
             return std::exp(x);
@@ -5937,11 +4314,13 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> log(const ad::ADNumber<T> &val) {
-        ad::ADNumber<T> ret(log(val.GetValue()), T(1.0) / val.GetValue());
+    template<class T> const ad::ADNumber<T> log(const ad::ADNumber<T> &val) {
+        ad::ADNumber<T> ret(log(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::LOG);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::LOG);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5951,14 +4330,15 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> log10(const ad::ADNumber<T> &val) {
-        ad::ADNumber<T> ret(log10(val.GetValue()),
-                T(1.0) / (val.GetValue() * log(T(10.0))));
+    template<class T> const ad::ADNumber<T> log10(const ad::ADNumber<T> &val) {
+        ad::ADNumber<T> ret(log10(val.GetValue()));
 
 
 
-        ret.expression_m->SetOp(ad::LOG10);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::LOG10);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
 
         return ret;
@@ -5971,13 +4351,14 @@ namespace std {
      * @param rhs
      * @return 
      */
-    template<class T> ad::ADNumber<T> pow(const ad::ADNumber<T> &lhs, const ad::ADNumber<T> &rhs) {
-        ad::ADNumber<T> ret(pow(lhs.GetValue(), rhs.GetValue()),
-                rhs.GetValue() * pow(lhs.GetValue(), rhs.GetValue() - T(1.0)));
+    template<class T> const ad::ADNumber<T> pow(const ad::ADNumber<T> &lhs, const ad::ADNumber<T> &rhs) {
+        ad::ADNumber<T> ret(pow(lhs.GetValue(), rhs.GetValue()));
 
-        ret.expression_m->SetOp(ad::POW);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(ad::POW);
+        ret.expression->SetLeft(lhs.expression);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -5989,18 +4370,18 @@ namespace std {
      * @param rhs
      * @return 
      */
-    template<class T> ad::ADNumber<T> pow(T lhs, const ad::ADNumber<T> & rhs) {
-        ad::ADNumber<T> ret(pow(lhs, rhs.GetValue()),
-                rhs.GetValue() * pow(lhs, rhs.GetValue() - T(1.0)));
-        //   (lhs * (std::numeric_limits<T>::epsilon() / lhs)));
+    template<class T> const ad::ADNumber<T> pow(T lhs, const ad::ADNumber<T> & rhs) {
+        ad::ADNumber<T> ret(pow(lhs, rhs.GetValue()));
 
-        ad::Expression<T> *exp = new ad::Expression<T > ();
+        ad::ExpressionPtr exp = new ad::Expression<T > ();
         exp->SetValue(lhs);
         exp->SetOp(ad::CONSTANT);
 
-        ret.expression_m->SetOp(ad::POW);
-        ret.expression_m->SetLeft(exp);
-        ret.expression_m->SetRight(rhs.expression_m->Clone());
+        ret.expression->SetOp(ad::POW);
+        ret.expression->SetLeft(exp);
+        ret.expression->SetRight(rhs.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -6012,19 +4393,12 @@ namespace std {
      * @param rhs
      * @return 
      */
-    template<class T> ad::ADNumber<T> pow(const ad::ADNumber<T> &lhs, T rhs) {
-        ad::ADNumber<T> ret(pow(lhs.GetValue(), rhs),
-                rhs * pow(lhs.GetValue(), rhs - T(1.0)));
-
-        ad::Expression<T> *exp = new ad::Expression<T > ();
-        exp->SetValue(rhs);
-        exp->SetOp(ad::CONSTANT);
-
-        ret.expression_m->SetOp(ad::POW);
-        ret.expression_m->SetLeft(lhs.expression_m->Clone());
-        ret.expression_m->SetRight(exp);
-
-        return ret;
+    template<class T> const ad::ADNumber<T> pow(const ad::ADNumber<T> &lhs, T rhs) {
+        T val = std::pow(lhs.GetValue(), rhs);
+        return ad::ADNumber<T > (val,
+                NEW_EXPRESSION(T)(val,
+                0, ad::POW, lhs.expression,
+                NEW_EXPRESSION(T)(rhs, 0, ad::CONSTANT, NULL, NULL)));
     }
 
     /*!
@@ -6033,12 +4407,13 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> sin(const ad::ADNumber<T> &val) {
-        ad::ADNumber<T> ret(sin(val.GetValue()),
-                cos(val.GetValue()));
+    template<class T> const ad::ADNumber<T> sin(const ad::ADNumber<T> &val) {
+        ad::ADNumber<T> ret(sin(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::SIN);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::SIN);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -6049,20 +4424,15 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> sqrt(const ad::ADNumber<T> &val) {
+    template<class T> const ad::ADNumber<T> sqrt(const ad::ADNumber<T> &val) {
         T temp = sqrt(val.GetValue());
-        ad::ADNumber<T> ret(temp,
-                T(0.5) / temp);
-        //        ad::Expression<T>* right = new ad::Expression<T > ();
-        //        right->SetOp(ad::CONSTANT);
-        //        right->SetValue(T(0.5));
-        //
-        //        //just use pow!!!
-        //        ret.expression_m->SetOp(ad::POW);
-        //        ret.expression_m->SetLeft(val.expression_m->Clone());
-        //        ret.expression_m->SetRight(right);
-        ret.expression_m->SetOp(ad::SQRT);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ad::ADNumber<T> ret(temp);
+
+        ret.expression->SetOp(ad::SQRT);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
+
         return ret;
     }
 
@@ -6072,13 +4442,14 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> tan(const ad::ADNumber<T> &val) {
+    template<class T> const ad::ADNumber<T> tan(const ad::ADNumber<T> &val) {
         T temp = cos(val.GetValue());
-        ad::ADNumber<T> ret(tan(val.GetValue()),
-                T(1.0) / (temp * temp));
+        ad::ADNumber<T> ret(tan(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::TAN);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::TAN);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -6089,13 +4460,14 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> acos(const ad::ADNumber<T> & val) {
+    template<class T> const ad::ADNumber<T> acos(const ad::ADNumber<T> & val) {
 
-        ad::ADNumber<T> ret(acos(val.GetValue()),
-                T(-1.0) / sqrt(T(1.0) - pow(val.GetValue(), T(2))));
+        ad::ADNumber<T> ret(acos(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::ACOS);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::ACOS);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -6106,11 +4478,13 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> asin(const ad::ADNumber<T> &val) {
-        ad::ADNumber<T> ret(asin(val.GetValue()), T(1.0) / sqrt(T(1.0) - pow(val.GetValue(), T(2))));
+    template<class T> const ad::ADNumber<T> asin(const ad::ADNumber<T> &val) {
+        ad::ADNumber<T> ret(asin(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::ASIN);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::ASIN);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -6121,13 +4495,15 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> sinh(const ad::ADNumber<T> &val) {
+    template<class T> const ad::ADNumber<T> sinh(const ad::ADNumber<T> &val) {
 
-        ad::ADNumber<T> ret(sinh(val.GetValue()),
-                cosh(val.GetValue()));
+        ad::ADNumber<T> ret(sinh(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::SINH);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::SINH);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
+
         return ret;
     }
 
@@ -6136,12 +4512,13 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> cosh(const ad::ADNumber<T> &val) {
-        ad::ADNumber<T> ret(cosh(val.GetValue()),
-                sinh(val.GetValue()));
+    template<class T> const ad::ADNumber<T> cosh(const ad::ADNumber<T> &val) {
+        ad::ADNumber<T> ret(cosh(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::COSH);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::COSH);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -6151,12 +4528,14 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> tanh(const ad::ADNumber<T> &val) {
+    template<class T> const ad::ADNumber<T> tanh(const ad::ADNumber<T> &val) {
         T temp = cosh(val.GetValue());
-        ad::ADNumber<T> ret(std::tanh(val.GetValue()), (T(1) / temp)*(T(1) / temp));
+        ad::ADNumber<T> ret(std::tanh(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::TANH);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::TANH);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -6166,12 +4545,14 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> fabs(const ad::ADNumber<T> &val) {
+    template<class T> const ad::ADNumber<T> fabs(const ad::ADNumber<T> &val) {
 
-        ad::ADNumber<T> ret(fabs(val.GetValue()), fabs(val.Forward()));
+        ad::ADNumber<T> ret(fabs(val.GetValue()));
 
-        ret.expression_m->SetOp(ad::FABS);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+        ret.expression->SetOp(ad::FABS);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
 
         return ret;
     }
@@ -6182,10 +4563,13 @@ namespace std {
      * @param val
      * @return 
      */
-    template<class T> ad::ADNumber<T> floor(const ad::ADNumber<T> &val) {
-        ad::ADNumber<T> ret(floor(val.GetValue()), floor(val.Forward()));
-        ret.expression_m->SetOp(ad::FLOOR);
-        ret.expression_m->SetLeft(val.expression_m->Clone());
+    template<class T> const ad::ADNumber<T> floor(const ad::ADNumber<T> &val) {
+        ad::ADNumber<T> ret(floor(val.GetValue()));
+        ret.expression->SetOp(ad::FLOOR);
+        ret.expression->SetLeft(val.expression);
+        ret.expression->SetId(ret.GetID());
+        ret.expression->SetValue(ret.GetValue());
+
         return ret;
     }
 
@@ -6197,15 +4581,15 @@ namespace std {
      * @param var
      * @return 
      */
-    template<class T> ad::ADNumber<T> solve(const ad::ADNumber<T> &lhs, const ad::ADNumber<T> &rhs, const ad::ADNumber<T> &var) {
+    template<class T> const ad::ADNumber<T> solve(const ad::ADNumber<T> &lhs, const ad::ADNumber<T> &rhs, const ad::ADNumber<T> &var) {
         std::cout << "solve not yet implemented....\n";
         ad::ADNumber<T> ret;
 
-        if (lhs.expression_m->HasID(var.GetID())) {
+        if (lhs.expression->HasId(var.GetID())) {
             std::cout << "left side contains var...\n";
         }
 
-        if (rhs.expression_m->HasID(var.GetID())) {
+        if (rhs.expression->HasId(var.GetID())) {
             std::cout << "left side contains var...\n";
         }
 
@@ -6227,10 +4611,566 @@ namespace std {
 
 }
 
+
+namespace ad {
+
+    template<class T>
+    static T DerivativeValue(const ADNumber<T> &x, const ADNumber<T> &wrt, unsigned int order) {
+
+        if (order == 0) {
+            return x.GetValue();
+        }
+
+        if (order == 1) {
+            return EvaluateDerivative<T > (x.expression, wrt.GetID());
+        }
+
+
+
+        ExpressionPtr exp = Differentiate<T > (x.expression, wrt.GetID());
+        exp->take();
+        ExpressionPtr temp;
+
+        if (order > 1) {
+
+            size_t i;
+            for (i = 1; i < order - 1; i++) {
+
+                temp = Differentiate<T > (exp, wrt.GetID());
+                temp->take();
+
+                exp->release();
+                exp = temp;
+
+
+            }
+
+        }
+
+        T ret = ad::EvaluateDerivative<T > (exp, wrt.GetID());
+
+
+        return ret;
+    }
+
+    template<class T>
+    static const ADNumber<T> Derivative(const ADNumber<T> &x, const ADNumber<T> &wrt, unsigned int order) {
+
+
+        if (order == 0) {
+            return ADNumber<T > (x);
+        }
+
+
+        ExpressionPtr exp = Differentiate<T > (x.expression, wrt.GetID());
+        exp->take();
+        ExpressionPtr temp;
+
+        if (order > 1) {
+
+            size_t i;
+            for (i = 1; i < order; i++) {
+
+                temp = Differentiate<T > (exp, wrt.GetID());
+                temp->take();
+
+                exp->release();
+                exp = temp;
+
+
+            }
+
+        }
+
+        ADNumber<T> ret(exp);
+        ret.SetValue(Evaluate(ret.expression));
+
+        return ret;
+
+    }
+
+    template <typename TT >
+    TT SwapBytes(const TT &u) {
+
+        union {
+            TT u;
+            unsigned char u8[sizeof (TT)];
+        } source, dest;
+
+        source.u = u;
+
+        for (size_t k = 0; k < sizeof (TT); k++)
+            dest.u8[k] = source.u8[sizeof (TT) - k - 1];
+
+        return dest.u;
+    }
+
+    template<class T>
+    static void Serialize(ad::Expression<T>* expression, std::ostream &out) {
+
+
+        bool little_endian = true;
+
+        int num = 1;
+        if (*(char *) &num == 1) {
+            little_endian = true;
+        } else {
+            little_endian = false;
+        }
+
+        if (!out.good()) {
+            std::cout << "Expression serialization stream not open!";
+            return;
+        }
+
+        std::queue<Expression<T>* > Q;
+
+        Q.push(expression);
+
+        while (Q.size()) {
+            Expression<T>* exp = (Expression<T>*)Q.front();
+
+            if (exp == NULL) {
+                Q.pop();
+                continue;
+            }
+
+            unsigned long id = exp->GetId();
+
+
+            if (!little_endian) {
+                id = SwapBytes<unsigned long>(id);
+            }
+
+            out.write(reinterpret_cast<const char*> (&id), sizeof (id));
+
+            int op = (int) exp->GetOp();
+
+            if (!little_endian) {
+                op = SwapBytes<int>(op);
+            }
+
+
+            out.write(reinterpret_cast<const char*> (&op), sizeof (int));
+
+            T value = exp->GetValue();
+
+            if (!little_endian) {
+                value = SwapBytes<T > (value);
+            }
+
+            out.write(reinterpret_cast<const char*> (&value), sizeof ( T));
+
+            size_t namesize = exp->GetName().size();
+            out.write(reinterpret_cast<const char*> (&namesize), sizeof (namesize));
+            out << exp->GetName().c_str();
+
+            if (exp->GetLeft()) {
+                out << '1';
+            } else {
+                out << '0';
+            }
+
+            if (exp->GetRight()) {
+                out << '1';
+            } else {
+                out << '0';
+            }
+
+            if (exp->GetLeft() == NULL && exp->GetRight() == NULL) {
+                Q.pop();
+                continue;
+            }
+
+
+            Q.push(exp->GetLeft());
+            Q.push(exp->GetRight());
+            Q.pop();
+
+        }
+
+    }
+
+    template<class T>
+    static void Deserialize(ad::Expression<T>* exp, std::istream &in) {
+
+        bool little_endian = true;
+
+        int num = 1;
+        if (*(char *) &num == 1) {
+            little_endian = true;
+        } else {
+            little_endian = false;
+        }
+
+        if (!in.good()) {
+            std::cout << "Expression serialization stream not open!";
+            return;
+        }
+
+        if (NULL == exp) {
+            exp = new ad::Expression<T > ();
+
+            exp->SetLeft(NULL);
+            exp->SetRight(NULL);
+        }
+
+        unsigned long* id;
+        char idc[sizeof (id)];
+        in.read(idc, sizeof (id));
+        id = reinterpret_cast<unsigned long*> (idc);
+
+        if (!little_endian) {
+            exp->SetId(SwapBytes<unsigned long > (*id));
+        } else {
+            exp->SetId(*id);
+        }
+
+
+
+
+        int* op;
+        char opc[sizeof (int) ];
+        in.read(opc, sizeof (int));
+        op = reinterpret_cast<int*> (opc);
+
+        if (!little_endian) {
+            exp->SetOp(static_cast<ad::Operation> (SwapBytes<int> (*op)));
+        } else {
+            exp->SetOp(static_cast<ad::Operation> (*op));
+        }
+
+
+        T* value;
+        char valc[sizeof (T)];
+        in.read(valc, sizeof (T));
+        value = reinterpret_cast<T*> (valc);
+
+
+        if (!little_endian) {
+            exp->SetValue((SwapBytes<T > (*value)));
+        } else {
+            exp->SetValue(*value);
+        }
+
+        size_t* namesize;
+        char namesizec[sizeof (size_t)];
+        in.read(namesizec, sizeof (size_t));
+        namesize = reinterpret_cast<size_t*> (namesizec);
+
+        char namec[*namesize + 1];
+        namec[*namesize] = '\0';
+
+        in.read(namec, *namesize);
+        exp->SetName(std::string(namec));
+
+        char left;
+        in >> left;
+
+        if (left == '1') {
+            exp->SetLeft(new Expression<T > ());
+        }
+
+        char right;
+        in >> right;
+
+        if (right == '1') {
+            exp->SetRight(new Expression<T > ());
+        }
+
+        std::queue<Expression<T>* > Q;
+
+        Q.push(exp);
+
+        while (!Q.empty()) {
+
+
+            Expression<T>* current = Q.front();
+
+
+            Q.pop();
+
+
+
+            if (current->GetLeft() != NULL) {
+
+                Expression<T>* expression = current->GetLeft();
+                expression->SetLeft(NULL);
+                expression->SetRight(NULL);
+                unsigned long* id;
+                char idc[sizeof (id)];
+                in.read(idc, sizeof (id));
+                id = reinterpret_cast<unsigned long*> (idc);
+
+                if (!little_endian) {
+                    expression->SetId(SwapBytes<unsigned long > (*id));
+                } else {
+                    expression->SetId(*id);
+                }
+
+
+
+
+                int* op;
+                char opc[sizeof (int) ];
+                in.read(opc, sizeof (int));
+                op = reinterpret_cast<int*> (opc);
+
+                if (!little_endian) {
+                    expression->SetOp(static_cast<ad::Operation> (SwapBytes<int> (*op)));
+                } else {
+                    expression->SetOp(static_cast<ad::Operation> (*op));
+                }
+
+
+                T* value;
+                char valc[sizeof (T)];
+                in.read(valc, sizeof (T));
+                value = reinterpret_cast<T*> (valc);
+
+
+                if (!little_endian) {
+                    expression->SetValue((SwapBytes<T > (*value)));
+                } else {
+                    expression->SetValue(*value);
+                }
+
+                size_t* namesize;
+                char namesizec[sizeof (size_t)];
+                in.read(namesizec, sizeof (size_t));
+                namesize = reinterpret_cast<size_t*> (namesizec);
+
+                char namec[*namesize + 1];
+                namec[*namesize] = '\0';
+
+                in.read(namec, *namesize);
+                expression->SetName(std::string(namec));
+
+                char left;
+                in >> left;
+
+                if (left == '1') {
+                    expression->SetLeft(new Expression<T > ());
+                }
+
+                char right;
+                in >> right;
+
+                if (right == '1') {
+                    expression->SetRight(new Expression<T > ());
+                }
+
+                Q.push(expression);
+
+            }
+
+
+            if (current->GetRight() != NULL) {
+                Expression<T>* expression = current->GetRight();
+                expression->SetLeft(NULL);
+                expression->SetRight(NULL);
+
+                unsigned long* id;
+                char idc[sizeof (id)];
+                in.read(idc, sizeof (id));
+                id = reinterpret_cast<unsigned long*> (idc);
+
+                if (!little_endian) {
+                    expression->SetId(SwapBytes<unsigned long > (*id));
+                } else {
+                    expression->SetId(*id);
+                }
+
+
+
+
+                int* op;
+                char opc[sizeof (int) ];
+                in.read(opc, sizeof (int));
+                op = reinterpret_cast<int*> (opc);
+
+                if (!little_endian) {
+                    expression->SetOp(static_cast<ad::Operation> (SwapBytes<int> (*op)));
+                } else {
+                    expression->SetOp(static_cast<ad::Operation> (*op));
+                }
+
+
+                T* value;
+                char valc[sizeof (T)];
+                in.read(valc, sizeof (T));
+                value = reinterpret_cast<T*> (valc);
+
+
+                if (!little_endian) {
+                    expression->SetValue((SwapBytes<T > (*value)));
+                } else {
+                    expression->SetValue(*value);
+                }
+
+                size_t* namesize;
+                char namesizec[sizeof (size_t)];
+                in.read(namesizec, sizeof (size_t));
+                namesize = reinterpret_cast<size_t*> (namesizec);
+
+                char namec[*namesize + 1];
+                namec[*namesize] = '\0';
+
+                in.read(namec, *namesize);
+                expression->SetName(std::string(namec));
+
+                char left;
+                in >> left;
+
+                if (left == '1') {
+                    expression->SetLeft(new Expression<T > ());
+                }
+
+                char right;
+                in >> right;
+
+                if (right == '1') {
+                    expression->SetRight(new Expression<T > ());
+                }
+
+                Q.push(expression);
+            }
+
+        }
+    }
+
+    template<class T>
+    const std::string ToString(const ADNumber<T> &x, bool latex) {
+        return x.expression->ToString(latex);
+    }
+
+
+
+
+    namespace cas {
+
+        template<class T>
+        static const ADNumber<T> Expand(const ADNumber<T> &x) {
+
+        }
+
+        template<class T>
+        static const ADNumber<T> Factor(const ADNumber<T> &x) {
+
+        }
+
+        template<class T>
+        static const ADNumber<T> Simplify(const ADNumber<T> &x) {
+
+        }
+
+        template<class T>
+        static const ADNumber<T> Solve(const ADNumber<T> &exp, const ADNumber<T> &var) {
+
+        }
+
+        template<class T>
+        static const std::vector<ADNumber<T> >Solve(const std::vector<ADNumber<T> > &system, const ADNumber<T> &var) {
+
+        }
+
+        template<class T>
+        static const ADNumber<T> GCD(const ADNumber<T> &x, const ADNumber<T> &y) {
+
+        }
+
+        template<class T>
+        static const ADNumber<T> LCM(const ADNumber<T> &x, const ADNumber<T> &y) {
+
+        }
+
+
+
+    }
+
+
+
+}
+
+
+
 typedef ad::ADNumber<double> addouble;
 typedef ad::ADNumber<double> adfloat;
 
 typedef ad::ADNumber<double> dvar;
 typedef ad::ADNumber<double> fvar;
 
+
+
+#ifdef ADNUMBER_MPI_SUPPORT
+
+/**
+ * Message Passing Interface support. Serializes the ADNumber using
+ * ad::Serialize. Sends via char array.
+ * @param x
+ * @param dest
+ * @param tag
+ * @param comm
+ * @return 
+ */
+template<class T>
+int MPI_Send_ADNumber(const ad::ADNumber<T> &x,
+int dest,
+int tag,
+MPI_Comm comm) {
+
+    std::stringstream ss;
+    ad::Serialize<T > (x.expression, ss);
+    int size = ss.str().size();
+
+    int error = MPI_Send(&size, 1, MPI_INT, dest, tag, comm);
+
+    return MPI_Send((void*) ss.str().c_str(), ss.str().size(), MPI_CHAR, dest, tag, comm);
+}
+
+#include <fstream>
+
+/**
+ * Deserializes a char array using ad::Serialize and reconstructs a ADNumber.
+ * 
+ * @param x
+ * @param source
+ * @param tag
+ * @param comm
+ * @param status
+ * @return 
+ */
+template<class T>
+int MPI_Recv_ADNumber(ad::ADNumber<T> &x,
+int source, int tag,
+MPI_Comm comm, MPI_Status *status) {
+    std::stringstream ss;
+    int size = 0;
+
+    MPI_Recv(&size, 1, MPI_INT, source, tag, comm, status);
+
+    char* data = new char[size];
+    int ret = MPI_Recv(data, size, MPI_CHAR, source, tag, comm, status);
+
+    for (int i = 0; i < size; i++) {
+        ss << data[i];
+    }
+
+    ad::Expression<T>* exp = new ad::Expression<T > ();
+    ad::Deserialize<T > (exp, ss);
+
+    delete data;
+    //  std::cout<<exp->ToString();
+
+    x = ad::ADNumber<T > (exp);
+    return ret;
+
+}
+
+#endif
+
+
+
+
 #endif	/* ADNUMBER_HPP */
+
